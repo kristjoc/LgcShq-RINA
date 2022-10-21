@@ -956,7 +956,7 @@ void KeyContainerManager::encode_key_container_message(const struct key_containe
 				      kc.public_key.size_);
 	}
 
-	long size = gpb_kc.ByteSizeLong();
+	int size = gpb_kc.ByteSize();
 	result.message_ = new unsigned char[size];
 	result.size_ = size;
 	gpb_kc.SerializeToArray(result.message_, size);
