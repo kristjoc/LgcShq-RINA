@@ -1,0 +1,16 @@
+{
+        "PluginName": "lgcshq-plugin",
+        "PluginVersion": "1",
+        "PolicySets" : [
+                {
+                        "Name": "lgcshq-ps",
+                        "Component": "rmt",
+                        "Version" : "1"
+                },
+                {
+                        "Name": "lgcshq-ps",
+                        "Component": "dtcp",
+                        "Version" : "1"
+                }
+        ]
+}
