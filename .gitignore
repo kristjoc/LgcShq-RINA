@@ -12,3 +12,4 @@ Makefile
 /plugins/.cproject
 /plugins/.project
 /plugins/.settings/
+!/plugins/**/Makefile
