@@ -176,11 +176,6 @@ static void lgc_set_cwnd(struct dtcp_ps *ps)
 
 	/* Update credit and right window edge */
 	dtcp->sv->rcvr_credit = cwnd;
-
-	/* applying the TCP rule of not shrinking the window */
-	if (dtcp->parent->sv->rcv_left_window_edge + cwnd > dtcp->sv->rcvr_rt_wind_edge)
-		dtcp->sv->rcvr_rt_wind_edge =
-			dtcp->parent->sv->rcv_left_window_edge + cwnd;
 }
 
 
@@ -196,6 +191,11 @@ static int lgcshq_rcvr_flow_control(struct dtcp_ps * ps, const struct pci * pci)
 		/* PDU is ECN-marked, decrease cwnd value */
 		data->ecn_total++;
 	}
+
+	/* applying the TCP rule of not shrinking the window */
+	if (dtcp->parent->sv->rcv_left_window_edge + dtcp->sv->rcvr_credit > dtcp->sv->rcvr_rt_wind_edge)
+		dtcp->sv->rcvr_rt_wind_edge =
+			dtcp->parent->sv->rcv_left_window_edge + dtcp->sv->rcvr_credit;
 
 	/* Update cwnd once every observation window */
 	if (data->sent_total >= data->obs_window_size) {
