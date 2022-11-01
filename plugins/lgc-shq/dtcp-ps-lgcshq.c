@@ -37,14 +37,16 @@
 #define ONE (1U<<16)			// 1.0
 #define ALMOST_ONE (999U<<16)/1000U	// 0.99
 #define ONE_MINUS_ALPHA (95U<<16)/100U	// 0.95
+#define DEFAULT_ECN_BITS 1
 
 struct lgcshq_dtcp_ps_data {
 	uint_t	init_credit;
 	uint_t	sshtresh;
-	uint_t	sent_total;
-	uint_t	ecn_total;
+	uint_t	samples_received;
+	uint_t	ecn_received;
 	uint_t	obs_window_size;
 	uint_t	lgc_max_rate;
+	uint_t  ecn_bits;
 	u64	s_max_rate64;
 	u64	s_cur_rate64;
 	u32	s_max_rate32;
@@ -63,8 +65,8 @@ static void lgc_update_rate(struct dtcp_ps *ps)
 	u32 fraction = 0U, gr;
 
 	/* scale marked/acked */
-	u32 delivered_ce = data->ecn_total;
-	u32 delivered = data->sent_total;
+	u32 delivered_ce = data->ecn_received;
+	u32 delivered = data->samples_received;
 	delivered_ce <<= 16;
 	delivered_ce /= max(delivered, 1U);
 
@@ -186,21 +188,41 @@ static int lgcshq_rcvr_flow_control(struct dtcp_ps * ps, const struct pci * pci)
 
 	spin_lock_bh(&dtcp->parent->sv_lock);
 
-	data->sent_total++;
-	if ((pci_flags_get(pci) & PDU_FLAGS_EXPLICIT_CONGESTION)) {
+	data->samples_received += data->ecn_bits;
+    pdu_flags_t pci_flags = pci_flags_get(pci);
+
+	if (pci_flags & PDU_FLAGS_EXPLICIT_CONGESTION) {
 		/* PDU is ECN-marked, decrease cwnd value */
-		data->ecn_total++;
+		data->ecn_received++;
 	}
+    if (data->ecn_bits >= 2 && (pci_flags & PDU_FLAGS_EXPLICIT_CONGESTION_2)) {
+      data->ecn_received++;
+    }
+    if (data->ecn_bits >= 3 && (pci_flags & PDU_FLAGS_EXPLICIT_CONGESTION_3)) {
+      data->ecn_received++;
+    }
+    if (data->ecn_bits >= 4 && (pci_flags & PDU_FLAGS_EXPLICIT_CONGESTION_4)) {
+      data->ecn_received++;
+    }
+    if (data->ecn_bits >= 5 && (pci_flags & PDU_FLAGS_EXPLICIT_CONGESTION_5)) {
+      data->ecn_received++;
+    }
+    if (data->ecn_bits >= 6 && (pci_flags & PDU_FLAGS_EXPLICIT_CONGESTION_6)) {
+      data->ecn_received++;
+    }
+    if (data->ecn_bits >= 7 && (pci_flags & PDU_FLAGS_EXPLICIT_CONGESTION_7)) {
+      data->ecn_received++;
+    }
 
 	/* Update cwnd once every observation window */
-	if (data->sent_total >= data->obs_window_size) {
-      		LOG_INFO("Received %u PDUs, with %u marked PDUs in this window",
-			data->sent_total, data->ecn_total);
+	if (data->samples_received >= data->obs_window_size  * data->ecn_bits) {
+      		LOG_INFO("Received %u bits, with %u marked bits in this window",
+			data->samples_received, data->ecn_received);
 		lgc_update_rate(ps);
 		lgc_set_cwnd(ps);
 
-		data->sent_total = 0;
-		data->ecn_total = 0;
+		data->samples_received = 0;
+		data->ecn_received = 0;
 		data->obs_window_size = dtcp->sv->rcvr_credit;
 	}
 
@@ -210,8 +232,8 @@ static int lgcshq_rcvr_flow_control(struct dtcp_ps * ps, const struct pci * pci)
 			dtcp->parent->sv->rcv_left_window_edge + dtcp->sv->rcvr_credit;
 
 
-	LOG_INFO("New credit is %u, # of PDUs with ECN set %u", dtcp->sv->rcvr_credit,
-		data->ecn_total);
+	LOG_INFO("New credit is %u, # of bits with ECN set %u", dtcp->sv->rcvr_credit,
+		data->ecn_received);
 
 	spin_unlock_bh(&dtcp->parent->sv_lock);
 
@@ -252,6 +274,13 @@ static int dtcp_ps_set_policy_set_param(struct ps_base * bps, const char * name,
 		}
 	}
 
+	if (strcmp(name, "ecn_bits") == 0) {
+      ret = kstrtouint(value, 10, &ival);
+      if (!ret && (ival > 0) && (ival < 8)) {
+        data->ecn_bits = ival;
+      }
+    };
+
 	data->s_max_rate32 = data->lgc_max_rate * 125U;
 	data->s_max_rate64 = (u64)(data->s_max_rate32 << 16);
 	data->s_cur_rate64 = data->s_max_rate64;
@@ -269,10 +298,11 @@ static struct ps_base * dtcp_ps_lgcshq_create(struct rina_component * component)
 		return NULL;
 	}
 
+	data->ecn_bits = DEFAULT_ECN_BITS;
 	data->init_credit = 10;
 	data->sshtresh = 0XFFFFFFFF;
-	data->sent_total = 0;
-	data->ecn_total = 0;
+	data->samples_received = 0;
+	data->ecn_received = 0;
 	data->obs_window_size = data->init_credit;
 	dtcp->sv->rcvr_credit = data->init_credit;
 
@@ -297,7 +327,9 @@ static struct ps_base * dtcp_ps_lgcshq_create(struct rina_component * component)
 	ps->no_rate_slow_down           = NULL;
 	ps->no_override_default_peak    = NULL;
 
-	LOG_INFO("LGC-ShQ DTCP policy created");
+	LOG_INFO("LGC-ShQ DTCP policy created, "
+             "lgc_max_rate = %u, min_RTT = %u, ecn_bits = %u",
+             data->lgc_max_rate, data->min_RTT, data->ecn_bits);
 
 	return &ps->base;
 }
