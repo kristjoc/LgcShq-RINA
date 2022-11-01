@@ -37,6 +37,7 @@
 #define DEFAULT_MAXP 52428U
 #define DEFAULT_ALPHA 62259U
 #define DEFAULT_BANDWIDTH 125000U // bw in bytes/ms
+#define DEFAULT_ECN_BITS 1
 
 struct lgcshq_rmt_ps_data {
 	/* Max length of a queue. */
@@ -49,6 +50,8 @@ struct lgcshq_rmt_ps_data {
 	unsigned int alpha;
 	/* bandwidth interface in bytes / sec */
 	unsigned int bandwidth;
+	/* number of ecn bits to use for marking */
+	unsigned int ecn_bits;
 	/* variables */
 	u64 prob;
 	u64 avg_qlen;
@@ -236,11 +239,43 @@ static int lgcshq_rmt_enqueue_policy(struct rmt_ps *ps,
 		calc_probability(data, delta, qlen);
 
 
-	if (qlen < data->limit && should_mark(data->prob)) {
-		pci_flags = pci_flags_get(&du->pci);
-		pci_flags_set(&du->pci, pci_flags |= PDU_FLAGS_EXPLICIT_CONGESTION);
-		LOG_DBG("Queue length is %u, marked PDU with ECN", qlen);
-	}
+	if (qlen < data->limit) {
+      if (should_mark(data->prob)) {
+        pci_flags = pci_flags_get(&du->pci);
+        pci_flags_set(&du->pci, pci_flags |= PDU_FLAGS_EXPLICIT_CONGESTION);
+        LOG_DBG("Queue length is %u, marked PDU with ECN", qlen);
+      }
+      if (data->ecn_bits >= 2 && should_mark(data->prob)) {
+        pci_flags = pci_flags_get(&du->pci);
+        pci_flags_set(&du->pci, pci_flags |= PDU_FLAGS_EXPLICIT_CONGESTION_2);
+        LOG_DBG("Queue length is %u, marked PDU with ECN2", qlen);
+      }
+      if (data->ecn_bits >= 3 && should_mark(data->prob)) {
+        pci_flags = pci_flags_get(&du->pci);
+        pci_flags_set(&du->pci, pci_flags |= PDU_FLAGS_EXPLICIT_CONGESTION_3);
+        LOG_DBG("Queue length is %u, marked PDU with ECN3", qlen);
+      }
+      if (data->ecn_bits >= 4 && should_mark(data->prob)) {
+        pci_flags = pci_flags_get(&du->pci);
+        pci_flags_set(&du->pci, pci_flags |= PDU_FLAGS_EXPLICIT_CONGESTION_4);
+        LOG_DBG("Queue length is %u, marked PDU with ECN4", qlen);
+      }
+      if (data->ecn_bits >= 5 && should_mark(data->prob)) {
+        pci_flags = pci_flags_get(&du->pci);
+        pci_flags_set(&du->pci, pci_flags |= PDU_FLAGS_EXPLICIT_CONGESTION_5);
+        LOG_DBG("Queue length is %u, marked PDU with ECN5", qlen);
+      }
+      if (data->ecn_bits >= 6 && should_mark(data->prob)) {
+        pci_flags = pci_flags_get(&du->pci);
+        pci_flags_set(&du->pci, pci_flags |= PDU_FLAGS_EXPLICIT_CONGESTION_6);
+        LOG_DBG("Queue length is %u, marked PDU with ECN6", qlen);
+      }
+      if (data->ecn_bits >= 7 && should_mark(data->prob)) {
+        pci_flags = pci_flags_get(&du->pci);
+        pci_flags_set(&du->pci, pci_flags |= PDU_FLAGS_EXPLICIT_CONGESTION_7);
+        LOG_DBG("Queue length is %u, marked PDU with ECN7", qlen);
+      }
+    }
 
 	if (!must_enqueue && rfifo_is_empty(q->queue))
 		return RMT_PS_ENQ_SEND;
@@ -333,6 +368,13 @@ static int lgcshq_rmt_ps_set_policy_set_param(struct ps_base *bps,
 			LOG_INFO("Maximum link capacity is %u bytes per msec", uival);
 		}
 	}
+	if (strcmp(name, "ecn_bits") == 0) {
+      ret = kstrtouint(value, 10, &uival);
+      if (!ret && (uival > 0) && (uival < 8)) {
+        data->ecn_bits = uival;
+        LOG_INFO("Using %u ECN bits", uival);
+      }
+    };
 
 	return 0;
 }
@@ -386,6 +428,7 @@ static struct ps_base * rmt_ps_lgcshq_create(struct rina_component *component)
 	data->maxp = DEFAULT_MAXP;
 	data->alpha = DEFAULT_ALPHA;
 	data->bandwidth = DEFAULT_BANDWIDTH;
+    data->ecn_bits = DEFAULT_ECN_BITS;
 
 	//load configuration if available
 	rmt_ps_load_param(ps, "limit");
@@ -393,6 +436,7 @@ static struct ps_base * rmt_ps_lgcshq_create(struct rina_component *component)
 	rmt_ps_load_param(ps, "maxp");
 	rmt_ps_load_param(ps, "alpha");
 	rmt_ps_load_param(ps, "bandwidth");
+    rmt_ps_load_param(ps, "ecn_bits");
 
 	// set default variables
 	data->avg_qlen = 0ULL;
@@ -408,8 +452,8 @@ static struct ps_base * rmt_ps_lgcshq_create(struct rina_component *component)
 	ps->rmt_dequeue_policy = lgcshq_rmt_dequeue_policy;
 
 	LOG_INFO("LGCSHQ RMT: PS loaded, "
-		 "limit = %u, interval = %llu, maxp = %u, alpha = %u, bw = %u",
-		 data->limit, data->interval, data->maxp, data->alpha, data->bandwidth);
+		 "limit = %u, interval = %llu, maxp = %u, alpha = %u, bw = %u, ecn_bits = %u",
+             data->limit, data->interval, data->maxp, data->alpha, data->bandwidth, data->ecn_bits);
 
 	return &ps->base;
 }
