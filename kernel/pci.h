@@ -32,6 +32,12 @@
 typedef uint8_t version_t;
 
 #define PDU_FLAGS_EXPLICIT_CONGESTION 0x01
+#define PDU_FLAGS_EXPLICIT_CONGESTION_2 0x02
+#define PDU_FLAGS_EXPLICIT_CONGESTION_3 0x04
+#define PDU_FLAGS_EXPLICIT_CONGESTION_4 0x08
+#define PDU_FLAGS_EXPLICIT_CONGESTION_5 0x10
+#define PDU_FLAGS_EXPLICIT_CONGESTION_6 0x20
+#define PDU_FLAGS_EXPLICIT_CONGESTION_7 0x40
 #define PDU_FLAGS_DATA_RUN            0x80
 /* To be truely defined; internal to stack, needs to be discussed */
 #define PDU_FLAGS_BAD                 0xFF
