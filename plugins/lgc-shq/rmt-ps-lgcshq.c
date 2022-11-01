@@ -33,7 +33,7 @@
 
 /* parameters */
 #define DEFAULT_LIMIT 1000U
-#define DEFAULT_INTERVAL 10U
+#define DEFAULT_INTERVAL PSCHED_NS2TICKS(10 * NSEC_PER_MSEC);
 #define DEFAULT_MAXP 52428U
 #define DEFAULT_ALPHA 62259U
 #define DEFAULT_BANDWIDTH 125000U // bw in bytes/ms
@@ -398,7 +398,7 @@ static struct ps_base * rmt_ps_lgcshq_create(struct rina_component *component)
 	data->avg_qlen = 0ULL;
 	data->count = 0ULL;
 	data->one_minus_alpha = 65536U - data->alpha;
-	data->maxp64 = (u64)data->maxp ;
+	data->maxp64 = ((u64)data->maxp) << 16;
 	data->last = psched_get_time();
 
 	// set callbacks
