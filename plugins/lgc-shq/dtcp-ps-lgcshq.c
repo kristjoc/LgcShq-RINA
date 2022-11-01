@@ -32,49 +32,51 @@
 #include "tcp_lgc.h"
 
 
-#define LGCSHQ_ALPHA 3277U
-#define THRESH 58982U
-
-// TODO: Use sysctl variables for this
-static u32 lgc_max_rate = 1000U;
+#define LGCSHQ_ALPHA (5U<<16)/100U	// 0.05
+#define THRESH (9U<<16)/10U		// 0.9
+#define ONE (1U<<16)			// 1.0
+#define ALMOST_ONE (999U<<16)/1000U	// 0.99
+#define ONE_MINUS_ALPHA (95U<<16)/100U	// 0.95
 
 struct lgcshq_dtcp_ps_data {
-	uint_t        init_credit;
-	uint_t        sshtresh;
-	uint_t        sent_total;
-	uint_t        ecn_total;
-	uint_t        lgcshq_alpha;
-	uint_t	      obs_window_size;
-	u64 rate;
-	u64 max_rateS;
-	u32 mrate;
-	u32 minRTT;
-	u32 fraction;
+	uint_t	init_credit;
+	uint_t	sshtresh;
+	uint_t	sent_total;
+	uint_t	ecn_total;
+	uint_t	obs_window_size;
+	uint_t	lgc_max_rate;
+	u64	s_max_rate64;
+	u64	s_cur_rate64;
+	u32	s_max_rate32;
+	u32	min_RTT;
+	u32	fraction;
 };
 
 static void lgc_update_rate(struct dtcp_ps *ps)
 {
 	struct lgcshq_dtcp_ps_data *data = ps->priv;
 
-	u64 rate = data->rate;
-	u64 tmprate = data->rate;
-	u64 new_rate = 0ULL;
+	u64 rate64 = data->s_cur_rate64;
+	u64 tmp_rate64 = rate64;
+	u64 new_rate64 = 0ULL;
 	s64 gr_rate_gradient = 1LL;
 	u32 fraction = 0U, gr;
 
+	/* scale marked/acked */
 	u32 delivered_ce = data->ecn_total;
 	u32 delivered = data->sent_total;
 	delivered_ce <<= 16;
 	delivered_ce /= max(delivered, 1U);
 
+	/* update fraction */
 	if (delivered_ce >= THRESH)
-		fraction = (62259U * data->fraction) + (3277U * delivered_ce);
+		fraction = (ONE_MINUS_ALPHA * data->fraction) + (LGCSHQ_ALPHA * delivered_ce);
 	else
-		fraction = (62259U * data->fraction);
+		fraction = (ONE_MINUS_ALPHA * data->fraction);
 
 	data->fraction = (fraction >> 16);
-	if (data->fraction >= 65536U)
-		data->fraction = 65470U;
+	if (data->fraction >= ONE)
+		data->fraction = ALMOST_ONE;
 
 	/* At this point, we have a ca->fraction = [0,1) << LGC_SHIFT */
 
@@ -85,12 +87,10 @@ static void lgc_update_rate(struct dtcp_ps *ps)
          *                 log2(phi1)             log2(phi2)
 	 */
 
-	if (!data->mrate)
-		data->mrate = 125000U; //HERE
-	do_div(tmprate, data->mrate);
+	do_div(tmp_rate64, data->s_max_rate32);
 
-	u32 first_term = lgc_log_lut_lookup((u32)tmprate);
-	u32 second_term = lgc_log_lut_lookup((u32)(65536U - data->fraction));
+	u32 first_term = lgc_log_lut_lookup((u32)tmp_rate64);
+	u32 second_term = lgc_log_lut_lookup((u32)(ONE - data->fraction));
 
 	s32 gradient = first_term - second_term;
 
@@ -122,57 +122,57 @@ static void lgc_update_rate(struct dtcp_ps *ps)
 	/* } */
  /* here: */
 	gr_rate_gradient *= gr;
-	gr_rate_gradient *= rate;	/* rate: bpms << 16 */
+	gr_rate_gradient *= rate64;	/* rate: bpms << 16 */
 	gr_rate_gradient >>= 16;	/* back to 16-bit scaled */
 	gr_rate_gradient *= gradient;
 
 	/* if (ca->flowId == 0) */
 	/* 	printk(KERN_INFO "fraction %u",ca->fraction); */
 
-	new_rate = (u64)((rate << 16) + gr_rate_gradient);
-	new_rate >>= 16;
+	new_rate64 = (u64)((rate64 << 16) + gr_rate_gradient);
+	new_rate64 >>= 16;
 
 	/* new rate shouldn't increase more than twice */
-	if (new_rate > (rate << 1))
-		rate <<= 1;
-	else if (new_rate == 0)
-		rate = 65536U;
+	if (new_rate64 > (rate64 << 1))
+		rate64 <<= 1;
+	else if (new_rate64 == 0)
+		rate64 = 65536U;
 	else
-		rate = new_rate;
+		rate64 = new_rate64;
+
+	LOG_INFO("new rate %llu", new_rate64);
 
 	/* Check if the new rate exceeds the link capacity */
-	if (rate > data->max_rateS)
-		rate = data->max_rateS;
+	if (rate64 > data->s_max_rate64)
+		rate64 = data->s_max_rate64;
 
 	/* lgc_rate can be read from lgc_get_info() without
 	 * synchro, so we ask compiler to not use rate
 	 * as a temporary variable in prior operations.
 	 */
-	data->rate = rate;
+	data->s_cur_rate64 = rate64;
 }
 
-/* Calculate cwnd based on current rate and minRTT
+/* Calculate cwnd based on current rate and min_RTT
  * cwnd = rate * minRT / mss
  */
 static void lgc_set_cwnd(struct dtcp_ps *ps)
 {
 	struct dtcp * dtcp = ps->dm;
 	struct lgcshq_dtcp_ps_data * data = ps->priv;
-
 	u32 cwnd = 0U;
-	u32 minRTT = dtcp->sv->rtt;
+	u64 target64 = (u64)(data->s_cur_rate64 * data->min_RTT);
+	
+	target64 >>= 16; // 16 + 10 (USEC_PER_SEC)
+	do_div(target64, 1500 * 1000);
 
-	u64 target = (u64)(data->rate * minRTT);
-	target >>= 16; // 16 + 10 (USEC_PER_SEC)
-	do_div(target, 1500 * 1000);
+	cwnd = max_t(u32, (u32)target64 + 1, 10U);
 
-	cwnd = max_t(u32, (u32)target + 3, 10U);
+	target64 = (u64)(cwnd * 1500 * 1000);
+	target64 <<= 16; // 16 + 10 (2^10 ~ 1000 (USEC_PER_MSEC))
+	do_div(target64, data->min_RTT);
 
-	target = (u64)(cwnd * 1500 * 1000);
-	target <<= 16; // 16 + 10 (2^10 ~ 1000 (USEC_PER_MSEC))
-	do_div(target, minRTT);
-
-	data->rate = target;
+	data->s_cur_rate64 = target64;
 
 	/* Update credit and right window edge */
 	dtcp->sv->rcvr_credit = cwnd;
@@ -192,14 +192,9 @@ static int lgcshq_rcvr_flow_control(struct dtcp_ps * ps, const struct pci * pci)
 		data->ecn_total++;
 	}
 
-	/* applying the TCP rule of not shrinking the window */
-	if (dtcp->parent->sv->rcv_left_window_edge + dtcp->sv->rcvr_credit > dtcp->sv->rcvr_rt_wind_edge)
-		dtcp->sv->rcvr_rt_wind_edge =
-			dtcp->parent->sv->rcv_left_window_edge + dtcp->sv->rcvr_credit;
-
 	/* Update cwnd once every observation window */
 	if (data->sent_total >= data->obs_window_size) {
-		LOG_DBG("Received %u PDUs, with %u marked PDUs in this window",
+      		LOG_INFO("Received %u PDUs, with %u marked PDUs in this window",
 			data->sent_total, data->ecn_total);
 		lgc_update_rate(ps);
 		lgc_set_cwnd(ps);
@@ -209,7 +204,13 @@ static int lgcshq_rcvr_flow_control(struct dtcp_ps * ps, const struct pci * pci)
 		data->obs_window_size = dtcp->sv->rcvr_credit;
 	}
 
-	LOG_DBG("New credit is %u, # of PDUs with ECN set %u", dtcp->sv->rcvr_credit,
+	/* applying the TCP rule of not shrinking the window */
+	if (dtcp->parent->sv->rcv_left_window_edge + dtcp->sv->rcvr_credit > dtcp->sv->rcvr_rt_wind_edge)
+		dtcp->sv->rcvr_rt_wind_edge =
+			dtcp->parent->sv->rcv_left_window_edge + dtcp->sv->rcvr_credit;
+
+
+	LOG_INFO("New credit is %u, # of PDUs with ECN set %u", dtcp->sv->rcvr_credit,
 		data->ecn_total);
 
 	spin_unlock_bh(&dtcp->parent->sv_lock);
@@ -237,12 +238,24 @@ static int dtcp_ps_set_policy_set_param(struct ps_base * bps, const char * name,
 		return -1;
 	}
 
-	/* if (strcmp(name, "shift_g") == 0) { */
-	/* 	ret = kstrtoint(value, 10, &ival); */
-	/* 	if (!ret) { */
-	/* 		data->shift_g = ival; */
-	/* 	} */
-	/* } */
+	if (strcmp(name, "lgc_max_rate") == 0) {
+		ret = kstrtoint(value, 10, &ival);
+		if (!ret) {
+			data->lgc_max_rate = ival;
+		}
+	}
+
+	if (strcmp(name, "min_RTT") == 0) {
+		ret = kstrtoint(value, 10, &ival);
+		if (!ret) {
+			data->min_RTT = ival * 1000;
+		}
+	}
+
+	data->s_max_rate32 = data->lgc_max_rate * 125U;
+	data->s_max_rate64 = (u64)(data->s_max_rate32 << 16);
+	data->s_cur_rate64 = data->s_max_rate64;
+	data->fraction = 0U;
 
 	return 0;
 }
@@ -261,11 +274,6 @@ static struct ps_base * dtcp_ps_lgcshq_create(struct rina_component * component)
 	data->sent_total = 0;
 	data->ecn_total = 0;
 	data->obs_window_size = data->init_credit;
-	data->mrate = lgc_max_rate * 125U;
-	data->max_rateS = (u64)(data->mrate);
-	data->rate = 983040000ULL;
-	data->minRTT = 1U << 20; // reference minRTT ~1s
-	data->fraction = 0U;
 	dtcp->sv->rcvr_credit = data->init_credit;
 
 	ps->base.set_policy_set_param   = dtcp_ps_set_policy_set_param;
@@ -289,7 +297,7 @@ static struct ps_base * dtcp_ps_lgcshq_create(struct rina_component * component)
 	ps->no_rate_slow_down           = NULL;
 	ps->no_override_default_peak    = NULL;
 
-	LOG_INFO("LGCSHQ DTCP policy created");
+	LOG_INFO("LGC-ShQ DTCP policy created");
 
 	return &ps->base;
 }
