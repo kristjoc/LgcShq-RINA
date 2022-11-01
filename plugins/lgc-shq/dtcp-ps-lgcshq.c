@@ -28,7 +28,7 @@
 #include "rds/rmem.h"
 #include "dtcp-ps.h"
 #include "logs.h"
-
+#include "policies.h"
 #include "tcp_lgc.h"
 
 
@@ -38,6 +38,8 @@
 #define ALMOST_ONE (999U<<16)/1000U	// 0.99
 #define ONE_MINUS_ALPHA (95U<<16)/100U	// 0.95
 #define DEFAULT_ECN_BITS 1
+#define DEFAULT_LGC_MAX_RATE 100
+#define DEFAULT_MIN_RTT 10000
 
 struct lgcshq_dtcp_ps_data {
 	uint_t	init_credit;
@@ -288,6 +290,32 @@ static int dtcp_ps_set_policy_set_param(struct ps_base * bps, const char * name,
 
 	return 0;
 }
+
+
+static int dtcp_ps_lgcshq_load_param(struct dtcp_ps *ps, const char *param_name)
+{
+    struct dtcp_config * dtcp_cfg;
+	struct policy_parm * ps_param;
+
+	dtcp_cfg = ps->dm->cfg;
+
+	if (dtcp_cfg) {
+		ps_param = policy_param_find(dtcp_cfg->dtcp_ps, param_name);
+	} else {
+		ps_param = NULL;
+	}
+
+	if (!ps_param) {
+		LOG_WARN("LGCSHQ DTCP: No PS param %s specified", param_name);
+	} else {
+      dtcp_ps_set_policy_set_param(&ps->base,
+						   policy_param_name(ps_param),
+						   policy_param_value(ps_param));
+	}
+
+	return 0;
+}
+
 static struct ps_base * dtcp_ps_lgcshq_create(struct rina_component * component)
 {
 	struct dtcp * dtcp = dtcp_from_component(component);
@@ -299,6 +327,8 @@ static struct ps_base * dtcp_ps_lgcshq_create(struct rina_component * component)
 	}
 
 	data->ecn_bits = DEFAULT_ECN_BITS;
+    data->lgc_max_rate = DEFAULT_LGC_MAX_RATE;
+    data->min_RTT = DEFAULT_MIN_RTT;
 	data->init_credit = 10;
 	data->sshtresh = 0XFFFFFFFF;
 	data->samples_received = 0;
@@ -326,6 +356,10 @@ static struct ps_base * dtcp_ps_lgcshq_create(struct rina_component * component)
 	ps->rcvr_control_ack            = NULL;
 	ps->no_rate_slow_down           = NULL;
 	ps->no_override_default_peak    = NULL;
+
+    dtcp_ps_lgcshq_load_param(ps, "lgc_max_rate");
+    dtcp_ps_lgcshq_load_param(ps, "min_RTT");
+    dtcp_ps_lgcshq_load_param(ps, "ecn_bits");
 
 	LOG_INFO("LGC-ShQ DTCP policy created, "
              "lgc_max_rate = %u, min_RTT = %u, ecn_bits = %u",
