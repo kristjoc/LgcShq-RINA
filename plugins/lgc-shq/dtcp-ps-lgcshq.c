@@ -266,6 +266,9 @@ static int dtcp_ps_set_policy_set_param(struct ps_base * bps, const char * name,
 		ret = kstrtoint(value, 10, &ival);
 		if (!ret) {
 			data->lgc_max_rate = ival;
+			data->s_max_rate32 = data->lgc_max_rate * 125U;
+			data->s_max_rate64 = (u64)(data->s_max_rate32 << 16);
+			data->s_cur_rate64 = data->s_max_rate64;
 		}
 	}
 
@@ -277,16 +280,11 @@ static int dtcp_ps_set_policy_set_param(struct ps_base * bps, const char * name,
 	}
 
 	if (strcmp(name, "ecn_bits") == 0) {
-      ret = kstrtouint(value, 10, &ival);
-      if (!ret && (ival > 0) && (ival < 8)) {
-        data->ecn_bits = ival;
-      }
-    };
-
-	data->s_max_rate32 = data->lgc_max_rate * 125U;
-	data->s_max_rate64 = (u64)(data->s_max_rate32 << 16);
-	data->s_cur_rate64 = data->s_max_rate64;
-	data->fraction = 0U;
+		ret = kstrtouint(value, 10, &ival);
+		if (!ret && (ival > 0) && (ival < 8)) {
+			data->ecn_bits = ival;
+		}
+    }
 
 	return 0;
 }
@@ -357,9 +355,14 @@ static struct ps_base * dtcp_ps_lgcshq_create(struct rina_component * component)
 	ps->no_rate_slow_down           = NULL;
 	ps->no_override_default_peak    = NULL;
 
-    dtcp_ps_lgcshq_load_param(ps, "lgc_max_rate");
-    dtcp_ps_lgcshq_load_param(ps, "min_RTT");
-    dtcp_ps_lgcshq_load_param(ps, "ecn_bits");
+	dtcp_ps_lgcshq_load_param(ps, "lgc_max_rate");
+	dtcp_ps_lgcshq_load_param(ps, "min_RTT");
+	dtcp_ps_lgcshq_load_param(ps, "ecn_bits");
+
+	data->s_max_rate32 = data->lgc_max_rate * 125U;
+	data->s_max_rate64 = (u64)(data->s_max_rate32 << 16);
+	data->s_cur_rate64 = data->s_max_rate64;
+	data->fraction = 0U;
 
 	LOG_INFO("LGC-ShQ DTCP policy created, "
              "lgc_max_rate = %u, min_RTT = %u, ecn_bits = %u",
