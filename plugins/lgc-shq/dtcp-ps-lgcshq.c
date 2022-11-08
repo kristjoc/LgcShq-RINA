@@ -51,7 +51,7 @@ struct lgcshq_dtcp_ps_data {
 	uint_t  ecn_bits;
 	u64	s_max_rate64;
 	u64	s_cur_rate64;
-	u32	s_max_rate32;
+	u32	max_rate32;
 	u32	min_RTT;
 	u32	fraction;
 };
@@ -91,7 +91,7 @@ static void lgc_update_rate(struct dtcp_ps *ps)
 	 *                 log2(phi1)             log2(phi2)
 	 */
 
-	do_div(tmp_rate64, data->s_max_rate32);
+	do_div(tmp_rate64, data->max_rate32);
 
 	u32 first_term = lgc_log_lut_lookup((u32)tmp_rate64);
 	u32 second_term = lgc_log_lut_lookup((u32)(ONE - data->fraction));
@@ -266,9 +266,6 @@ static int dtcp_ps_set_policy_set_param(struct ps_base * bps, const char * name,
 		ret = kstrtoint(value, 10, &ival);
 		if (!ret) {
 			data->lgc_max_rate = ival;
-			data->s_max_rate32 = data->lgc_max_rate * 125U;
-			data->s_max_rate64 = (u64)(data->s_max_rate32 << 16);
-			data->s_cur_rate64 = data->s_max_rate64;
 		}
 	}
 
@@ -359,8 +356,9 @@ static struct ps_base * dtcp_ps_lgcshq_create(struct rina_component * component)
 	dtcp_ps_lgcshq_load_param(ps, "min_RTT");
 	dtcp_ps_lgcshq_load_param(ps, "ecn_bits");
 
-	data->s_max_rate32 = data->lgc_max_rate * 125U;
-	data->s_max_rate64 = (u64)(data->s_max_rate32 << 16);
+	data->max_rate32 = data->lgc_max_rate * 125U;
+	data->s_max_rate64 = data->max_rate32;
+    data->s_max_rate64 <<= 16;
 	data->s_cur_rate64 = data->s_max_rate64;
 	data->fraction = 0U;
 
