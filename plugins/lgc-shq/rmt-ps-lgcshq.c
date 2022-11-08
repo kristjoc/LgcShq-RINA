@@ -343,7 +343,7 @@ static int lgcshq_rmt_ps_set_policy_set_param(struct ps_base *bps,
 	if (strcmp(name, "interval") == 0) {
 		ret = kstrtoull(value, 10, &ullval);
 		if (!ret) {
-			data->interval = ullval;
+			data->interval = PSCHED_NS2TICKS(ullval * NSEC_PER_MSEC);
 			LOG_INFO("Interval is %llu ms", ullval);
 		}
 	}
