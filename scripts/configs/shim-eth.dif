@@ -1,0 +1,6 @@
+{
+  "difType" : "shim-eth",
+  "configParameters" : {
+    "interface-name" : "${shim_iface}"
+  }
+}
