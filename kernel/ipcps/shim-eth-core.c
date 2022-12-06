@@ -95,7 +95,9 @@ struct ipcp_factory_data {
         struct notifier_block ntfy;
 
 #ifdef CONFIG_DEBUG_FS
+#if 0
         struct dentry *dbg;
+#endif
 #endif
 };
 
@@ -180,6 +182,7 @@ struct ipcp_instance_data {
         unsigned int tx_busy;
 
 #ifdef CONFIG_DEBUG_FS
+#if 0
         // Base directory
         struct dentry *dbg;
 
@@ -192,6 +195,7 @@ struct ipcp_instance_data {
         // ARP timeout
         struct dentry *dbg_timeout;
 #endif
+#endif
 };
 
 /* Needed for eth_rcv function */
@@ -203,6 +207,7 @@ struct interface_data_mapping {
 };
 
 #ifdef CONFIG_DEBUG_FS
+#if 0
 static int eth_shim_dbg_inst_info_show(struct seq_file *s, void *v)
 {
         char *ns;
@@ -324,6 +329,7 @@ static const struct file_operations eth_shim_dbg_inst_flows_ops = {
         .llseek		= seq_lseek,
         .release	= single_release,
 };
+#endif
 #endif
 
 static ssize_t eth_ipcp_attr_show(struct robject *        robj,
@@ -2174,7 +2180,9 @@ static struct ipcp_instance* eth_create(struct ipcp_factory_data*  data,
 {
         struct ipcp_instance * inst;
 #ifdef CONFIG_DEBUG_FS
+#if 0
         char buf[6]; // name of the DebugFS dir.
+#endif
 #endif
 
         ASSERT(data);
@@ -2274,6 +2282,7 @@ static struct ipcp_instance* eth_create(struct ipcp_factory_data*  data,
         list_add(&(inst->data->list), &(data->instances));
 
 #ifdef CONFIG_DEBUG_FS
+#if 0
         if (data->dbg) {
                 struct dentry *d;
 
@@ -2299,6 +2308,7 @@ static struct ipcp_instance* eth_create(struct ipcp_factory_data*  data,
                                            &inst->data->info->arp_timeout_ms);
                 }
         }
+#endif
 #endif
 
         return inst;
@@ -2339,6 +2349,7 @@ static int eth_destroy(struct ipcp_factory_data * data,
                 if (pos->id == instance->data->id) {
 
 #ifdef CONFIG_DEBUG_FS
+#if 0
                         if (instance->data->dbg_info)
                                 debugfs_remove(instance->data->dbg_info);
                         if (instance->data->dbg_flows)
@@ -2347,6 +2358,7 @@ static int eth_destroy(struct ipcp_factory_data * data,
                                 debugfs_remove(instance->data->dbg_timeout);
                         if (instance->data->dbg)
                                 debugfs_remove(instance->data->dbg);
+#endif
 #endif
 
                         /* Destroy existing flows */
@@ -2597,6 +2609,7 @@ static int __init mod_init(void)
                 goto fail;
 
 #ifdef CONFIG_DEBUG_FS
+#if 0
         dbg_root = debugfs_create_dir("shim-eth", NULL);
 
         if (dbg_root) {
@@ -2605,6 +2618,7 @@ static int __init mod_init(void)
                 wifi_ap_data.dbg = debugfs_create_dir(SHIM_WIFI_AP_NAME, dbg_root);
                 wifi_sta_data.dbg = debugfs_create_dir(SHIM_WIFI_STA_NAME, dbg_root);
         }
+#endif
 #endif
 
         spin_lock_init(&data_instances_lock);
@@ -2635,6 +2649,7 @@ static void __exit mod_exit(void)
         destroy_workqueue(rcv_wq);
 
 #ifdef CONFIG_DEBUG_FS
+#if 0
         if (eth_data.dbg)
                 debugfs_remove(eth_data.dbg);
         if (eth_vlan_data.dbg)
@@ -2645,6 +2660,7 @@ static void __exit mod_exit(void)
                 debugfs_remove(wifi_sta_data.dbg);
         if (dbg_root)
                 debugfs_remove(dbg_root);
+#endif
 #endif
 
         kipcm_ipcp_factory_unregister(default_kipcm, shim_eth);
