@@ -428,7 +428,7 @@ static struct ps_base * rmt_ps_lgcshq_create(struct rina_component *component)
 	data->maxp = DEFAULT_MAXP;
 	data->alpha = DEFAULT_ALPHA;
 	data->bandwidth = DEFAULT_BANDWIDTH;
-    data->ecn_bits = DEFAULT_ECN_BITS;
+	data->ecn_bits = DEFAULT_ECN_BITS;
 
 	//load configuration if available
 	rmt_ps_load_param(ps, "limit");
@@ -436,7 +436,7 @@ static struct ps_base * rmt_ps_lgcshq_create(struct rina_component *component)
 	rmt_ps_load_param(ps, "maxp");
 	rmt_ps_load_param(ps, "alpha");
 	rmt_ps_load_param(ps, "bandwidth");
-    rmt_ps_load_param(ps, "ecn_bits");
+	rmt_ps_load_param(ps, "ecn_bits");
 
 	// set default variables
 	data->avg_qlen = 0ULL;
@@ -453,7 +453,7 @@ static struct ps_base * rmt_ps_lgcshq_create(struct rina_component *component)
 
 	LOG_INFO("LGCSHQ RMT: PS loaded, "
 		 "limit = %u, interval = %llu, maxp = %u, alpha = %u, bw = %u, ecn_bits = %u",
-             data->limit, data->interval, data->maxp, data->alpha, data->bandwidth, data->ecn_bits);
+		 data->limit, data->interval, data->maxp, data->alpha, data->bandwidth, data->ecn_bits);
 
 	return &ps->base;
 }

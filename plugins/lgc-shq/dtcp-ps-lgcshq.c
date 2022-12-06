@@ -144,7 +144,7 @@ static void lgc_update_rate(struct dtcp_ps *ps)
 	else
 		rate64 = new_rate64;
 
-	LOG_INFO("new rate %llu", new_rate64);
+	LOG_DBG("new rate %llu", new_rate64);
 
 	/* Check if the new rate exceeds the link capacity */
 	if (rate64 > data->s_max_rate64)
@@ -218,7 +218,7 @@ static int lgcshq_rcvr_flow_control(struct dtcp_ps * ps, const struct pci * pci)
 
 	/* Update cwnd once every observation window */
 	if (data->samples_received >= data->obs_window_size  * data->ecn_bits) {
-		LOG_INFO("Received %u bits, with %u marked bits in this window",
+		LOG_DBG("Received %u bits, with %u marked bits in this window",
 				 data->samples_received, data->ecn_received);
 		lgc_update_rate(ps);
 		lgc_set_cwnd(ps);
@@ -234,8 +234,8 @@ static int lgcshq_rcvr_flow_control(struct dtcp_ps * ps, const struct pci * pci)
 			dtcp->parent->sv->rcv_left_window_edge + dtcp->sv->rcvr_credit;
 
 
-	LOG_INFO("New credit is %u, # of bits with ECN set %u", dtcp->sv->rcvr_credit,
-			 data->ecn_received);
+	LOG_DBG("New credit is %u, # of bits with ECN set %u", dtcp->sv->rcvr_credit,
+		data->ecn_received);
 
 	spin_unlock_bh(&dtcp->parent->sv_lock);
 
@@ -243,7 +243,7 @@ static int lgcshq_rcvr_flow_control(struct dtcp_ps * ps, const struct pci * pci)
 }
 
 static int dtcp_ps_set_policy_set_param(struct ps_base * bps, const char * name,
-										const char * value)
+					const char * value)
 {
 	struct dtcp_ps *ps = container_of(bps, struct dtcp_ps, base);
 	struct lgcshq_dtcp_ps_data *data = ps->priv;
@@ -304,8 +304,8 @@ static int dtcp_ps_lgcshq_load_param(struct dtcp_ps *ps, const char *param_name)
 		LOG_WARN("LGCSHQ DTCP: No PS param %s specified", param_name);
 	} else {
 		dtcp_ps_set_policy_set_param(&ps->base,
-									 policy_param_name(ps_param),
-									 policy_param_value(ps_param));
+					     policy_param_name(ps_param),
+					     policy_param_value(ps_param));
 	}
 
 	return 0;
@@ -322,8 +322,8 @@ static struct ps_base * dtcp_ps_lgcshq_create(struct rina_component * component)
 	}
 
 	data->ecn_bits = DEFAULT_ECN_BITS;
-    data->lgc_max_rate = DEFAULT_LGC_MAX_RATE;
-    data->min_RTT = DEFAULT_MIN_RTT;
+	data->lgc_max_rate = DEFAULT_LGC_MAX_RATE;
+	data->min_RTT = DEFAULT_MIN_RTT;
 	data->init_credit = 10;
 	data->sshtresh = 0XFFFFFFFF;
 	data->samples_received = 0;
@@ -358,7 +358,7 @@ static struct ps_base * dtcp_ps_lgcshq_create(struct rina_component * component)
 
 	data->max_rate32 = data->lgc_max_rate * 125U;
 	data->s_max_rate64 = data->max_rate32;
-    data->s_max_rate64 <<= 16;
+	data->s_max_rate64 <<= 16;
 	data->s_cur_rate64 = data->s_max_rate64;
 	data->fraction = 0U;
 
