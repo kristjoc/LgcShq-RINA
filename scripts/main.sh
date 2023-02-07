@@ -10,7 +10,7 @@ export RUN
 . run.sh
 . stats.sh
 
-main_over_nbits() {
+main_cwnd_over_nbits() {
     for i in ${!CCS[@]}; do
         CCC=${CCS[$i]}
         for j in ${!BITS[@]}; do
@@ -32,15 +32,14 @@ main_over_nbits() {
             done
         done
     done
-    # collect_stats
-    # python plot_qdisc.py $LOG_FILE
+    collect_stats
     # extract_stats
     # plot_stats
 }
 
 main() {
-    MODE="over_nbits"
-    main_over_nbits
+    MODE="cwnd_over_nbits"
+    main_cwnd_over_nbits
 
     echo "It is finished!"
 }

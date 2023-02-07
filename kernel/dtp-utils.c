@@ -953,7 +953,7 @@ int dtp_pdu_send(struct dtp *  dtp,
 	/* Remote flow case */
 	if (pci_source(&du->pci) != pci_destination(&du->pci)) {
 		if (dtp->dtcp->sv->rendezvous_rcvr) {
-			LOG_INFO("Sending to RMT in RV at RCVR");
+			LOG_DBG("Sending to RMT in RV at RCVR");
 		}
 
 		if (rmt_send(rmt, du)) {

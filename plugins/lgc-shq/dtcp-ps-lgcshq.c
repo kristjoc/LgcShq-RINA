@@ -37,9 +37,10 @@
 #define ONE (1U<<16)			// 1.0
 #define ALMOST_ONE (999U<<16)/1000U	// 0.99
 #define ONE_MINUS_ALPHA (95U<<16)/100U	// 0.95
-#define DEFAULT_ECN_BITS 1
-#define DEFAULT_LGC_MAX_RATE 100
-#define DEFAULT_MIN_RTT 10000
+#define DEFAULT_ECN_BITS 1		// 1 bit
+#define DEFAULT_LGC_MAX_RATE 100	// 100Mbps
+#define DEFAULT_MIN_RTT 10000		// 10ms
+#define DEFAULT_PACKET_SIZE 1484	// MSS + headers
 
 struct lgcshq_dtcp_ps_data {
 	uint_t	init_credit;
@@ -168,11 +169,11 @@ static void lgc_set_cwnd(struct dtcp_ps *ps)
 	u64 target64 = (u64)(data->s_cur_rate64 * data->min_RTT);
 
 	target64 >>= 16; // 16 + 10 (USEC_PER_SEC)
-	do_div(target64, 1500 * 1000);
+	do_div(target64, DEFAULT_PACKET_SIZE * 1000);
 
 	cwnd = max_t(u32, (u32)target64 + 1, 10U);
 
-	target64 = (u64)(cwnd * 1500 * 1000);
+	target64 = (u64)(cwnd * DEFAULT_PACKET_SIZE * 1000);
 	target64 <<= 16; // 16 + 10 (2^10 ~ 1000 (USEC_PER_MSEC))
 	do_div(target64, data->min_RTT);
 

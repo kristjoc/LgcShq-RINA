@@ -45,7 +45,7 @@ testbed_variables() {
     lgc_min_rtt="10"
     lgc_ecn_bits="1" # change value between experiments
     rmt_policy="lgcshq-ps" # should be different between hosts
-    rmt_limit="1000"
+    rmt_limit="100"
     rmt_bandwidth="100"
     rmt_interval="10"
 }
