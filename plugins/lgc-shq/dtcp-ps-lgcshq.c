@@ -39,7 +39,7 @@
 #define ONE_MINUS_ALPHA (95U<<16)/100U	// 0.95
 #define DEFAULT_ECN_BITS 1		// 1 bit
 #define DEFAULT_LGC_MAX_RATE 100	// 100Mbps
-#define DEFAULT_MIN_RTT 10000		// 10ms
+#define DEFAULT_MIN_RTT 10000		// 10ms = 10000us
 #define DEFAULT_PACKET_SIZE 1484	// MSS + headers
 
 struct lgcshq_dtcp_ps_data {
@@ -364,8 +364,8 @@ static struct ps_base * dtcp_ps_lgcshq_create(struct rina_component * component)
 	data->fraction = 0U;
 
 	LOG_INFO("LGC-ShQ DTCP policy created, "
-			 "lgc_max_rate = %u, min_RTT = %u, ecn_bits = %u",
-			 data->lgc_max_rate, data->min_RTT, data->ecn_bits);
+			 "lgc_max_rate = %u, min_RTT = %u ms, ecn_bits = %u",
+			 data->lgc_max_rate, data->min_RTT/1000, data->ecn_bits);
 
 	return &ps->base;
 }

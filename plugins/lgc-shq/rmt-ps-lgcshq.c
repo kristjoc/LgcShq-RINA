@@ -36,7 +36,7 @@
 #define DEFAULT_INTERVAL PSCHED_NS2TICKS(10 * NSEC_PER_MSEC);
 #define DEFAULT_MAXP 52428U
 #define DEFAULT_ALPHA 62259U
-#define DEFAULT_BANDWIDTH 125000U // bw in bytes/ms
+#define DEFAULT_BANDWIDTH 12500U // 100Mbps in bytes/ms
 #define DEFAULT_ECN_BITS 1
 
 struct lgcshq_rmt_ps_data {
@@ -452,8 +452,8 @@ static struct ps_base * rmt_ps_lgcshq_create(struct rina_component *component)
 	ps->rmt_dequeue_policy = lgcshq_rmt_dequeue_policy;
 
 	LOG_INFO("LGCSHQ RMT: PS loaded, "
-		 "limit = %u, interval = %llu, maxp = %u, alpha = %u, bw = %u, ecn_bits = %u",
-		 data->limit, data->interval, data->maxp, data->alpha, data->bandwidth, data->ecn_bits);
+		 "limit = %u, interval = %u, maxp = %u, alpha = %u, bw = %uMbps, ecn_bits = %u",
+		 data->limit, (u32)(PSCHED_TICKS2NS(data->interval)/NSEC_PER_MSEC, data->maxp, data->alpha, data->bandwidth/125, data->ecn_bits);
 
 	return &ps->base;
 }
