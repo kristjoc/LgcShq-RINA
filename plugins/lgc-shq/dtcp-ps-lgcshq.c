@@ -365,7 +365,7 @@ static struct ps_base * dtcp_ps_lgcshq_create(struct rina_component * component)
 
 	LOG_INFO("LGC-ShQ DTCP policy created, "
 			 "lgc_max_rate = %u, min_RTT = %u ms, ecn_bits = %u",
-			 data->lgc_max_rate, data->min_RTT/1000, data->ecn_bits);
+			 data->lgc_max_rate, data->min_RTT/USEC_PER_MSEC, data->ecn_bits);
 
 	return &ps->base;
 }

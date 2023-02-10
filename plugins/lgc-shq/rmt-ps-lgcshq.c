@@ -453,7 +453,7 @@ static struct ps_base * rmt_ps_lgcshq_create(struct rina_component *component)
 
 	LOG_INFO("LGCSHQ RMT: PS loaded, "
 		 "limit = %u, interval = %u, maxp = %u, alpha = %u, bw = %uMbps, ecn_bits = %u",
-		 data->limit, (u32)(PSCHED_TICKS2NS(data->interval)/NSEC_PER_MSEC, data->maxp, data->alpha, data->bandwidth/125, data->ecn_bits);
+		 data->limit, (u32)(PSCHED_TICKS2NS(data->interval))/NSEC_PER_MSEC, data->maxp, data->alpha, data->bandwidth/125, data->ecn_bits);
 
 	return &ps->base;
 }
