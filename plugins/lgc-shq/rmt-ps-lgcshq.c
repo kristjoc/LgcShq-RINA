@@ -1,7 +1,8 @@
 /*
- * DCTCP RMT PS
+ * LGCSHQ RMT PS
  *
- *    Matej Gregr <igregr@fit.vutbr.cz>
+ *    Kr1stj0n C1k0 <kristjoc@uio.no>
+ *    Michal Koutenský <koutenmi@fit.vutbr.cz>
  *
  * This program is free software; you can dummyistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,12 +33,12 @@
 #include "policies.h"
 
 /* parameters */
-#define DEFAULT_LIMIT 1000U
-#define DEFAULT_INTERVAL PSCHED_NS2TICKS(10 * NSEC_PER_MSEC);
-#define DEFAULT_MAXP 52428U
-#define DEFAULT_ALPHA 62259U
+#define DEFAULT_LIMIT 1000U		// 1000p
+#define DEFAULT_INTERVAL PSCHED_NS2TICKS(10 * NSEC_PER_MSEC)	// 10ms
+#define DEFAULT_MAXP (8U<<16)/10U	// 0.80
+#define DEFAULT_ALPHA (95U<<16)/100U	// 0.95
 #define DEFAULT_BANDWIDTH 12500U // 100Mbps in bytes/ms
-#define DEFAULT_ECN_BITS 1
+#define DEFAULT_ECN_BITS 1		// 1-bit
 
 struct lgcshq_rmt_ps_data {
 	/* Max length of a queue. */
@@ -91,7 +92,7 @@ static void calc_probability(struct lgcshq_rmt_ps_data *data,
 
 	avg_qlen *= data->maxp;
 
-	/* Calculate the maximum number of incoming bytes during the interval */
+	/* Calculate the max. number of incoming bytes during the interval */
 	maxb *= PSCHED_TICKS2NS(delta);
 	do_div(maxb, NSEC_PER_MSEC);
 	bmax = (u32)maxb;
@@ -177,15 +178,18 @@ static void * lgcshq_rmt_q_create_policy(struct rmt_ps *ps,
 	}
 
 	LOG_DBG("LGCSHQ RMT: Structures for scheduling policies created...");
+
 	return q;
 }
 
-static int lgcshq_rmt_q_destroy_policy(struct rmt_ps *ps, struct rmt_n1_port *port)
+static int lgcshq_rmt_q_destroy_policy(struct rmt_ps *ps,
+				       struct rmt_n1_port *port)
 {
 	struct lgcshq_rmt_queue    *q;
 
 	if (!ps || !port) {
-		LOG_ERR("LGCSHQ RMT: Wrong input parameters for lgcshq_rmt_scheduling_destroy_policy");
+		LOG_ERR("LGCSHQ RMT: "
+			"Wrong input parameters for lgcshq_rmt_q_destroy_policy");
 		return -1;
 	}
 
@@ -210,7 +214,7 @@ static int lgcshq_rmt_enqueue_policy(struct rmt_ps *ps,
 
 	if (!ps || !port || !du || !data) {
 		LOG_ERR("LGCSHQ RMT: Wrong input parameters"
-				" for lgcshq_enqueue_scheduling_policy_tx");
+				" for lgcshq_rmt_enqueue_policy");
 		return RMT_PS_ENQ_ERR;
 	}
 
@@ -240,47 +244,55 @@ static int lgcshq_rmt_enqueue_policy(struct rmt_ps *ps,
 
 
 	if (qlen < data->limit) {
-      if (should_mark(data->prob)) {
-        pci_flags = pci_flags_get(&du->pci);
-        pci_flags_set(&du->pci, pci_flags |= PDU_FLAGS_EXPLICIT_CONGESTION);
-        LOG_DBG("Queue length is %u, marked PDU with ECN", qlen);
-      }
-      if (data->ecn_bits >= 2 && should_mark(data->prob)) {
-        pci_flags = pci_flags_get(&du->pci);
-        pci_flags_set(&du->pci, pci_flags |= PDU_FLAGS_EXPLICIT_CONGESTION_2);
-        LOG_DBG("Queue length is %u, marked PDU with ECN2", qlen);
-      }
-      if (data->ecn_bits >= 3 && should_mark(data->prob)) {
-        pci_flags = pci_flags_get(&du->pci);
-        pci_flags_set(&du->pci, pci_flags |= PDU_FLAGS_EXPLICIT_CONGESTION_3);
-        LOG_DBG("Queue length is %u, marked PDU with ECN3", qlen);
-      }
-      if (data->ecn_bits >= 4 && should_mark(data->prob)) {
-        pci_flags = pci_flags_get(&du->pci);
-        pci_flags_set(&du->pci, pci_flags |= PDU_FLAGS_EXPLICIT_CONGESTION_4);
-        LOG_DBG("Queue length is %u, marked PDU with ECN4", qlen);
-      }
-      if (data->ecn_bits >= 5 && should_mark(data->prob)) {
-        pci_flags = pci_flags_get(&du->pci);
-        pci_flags_set(&du->pci, pci_flags |= PDU_FLAGS_EXPLICIT_CONGESTION_5);
-        LOG_DBG("Queue length is %u, marked PDU with ECN5", qlen);
-      }
-      if (data->ecn_bits >= 6 && should_mark(data->prob)) {
-        pci_flags = pci_flags_get(&du->pci);
-        pci_flags_set(&du->pci, pci_flags |= PDU_FLAGS_EXPLICIT_CONGESTION_6);
-        LOG_DBG("Queue length is %u, marked PDU with ECN6", qlen);
-      }
-      if (data->ecn_bits >= 7 && should_mark(data->prob)) {
-        pci_flags = pci_flags_get(&du->pci);
-        pci_flags_set(&du->pci, pci_flags |= PDU_FLAGS_EXPLICIT_CONGESTION_7);
-        LOG_DBG("Queue length is %u, marked PDU with ECN7", qlen);
-      }
-    }
+		if (should_mark(data->prob)) {
+			pci_flags = pci_flags_get(&du->pci);
+			pci_flags_set(&du->pci,
+				      pci_flags |= PDU_FLAGS_EXPLICIT_CONGESTION);
+			LOG_DBG("Queue length is %u, marked PDU with ECN", qlen);
+		}
+		if (data->ecn_bits >= 2 && should_mark(data->prob)) {
+			pci_flags = pci_flags_get(&du->pci);
+			pci_flags_set(&du->pci,
+				      pci_flags |= PDU_FLAGS_EXPLICIT_CONGESTION_2);
+			LOG_DBG("Queue length is %u, marked PDU with ECN2", qlen);
+		}
+		if (data->ecn_bits >= 3 && should_mark(data->prob)) {
+			pci_flags = pci_flags_get(&du->pci);
+			pci_flags_set(&du->pci,
+				      pci_flags |= PDU_FLAGS_EXPLICIT_CONGESTION_3);
+			LOG_DBG("Queue length is %u, marked PDU with ECN3", qlen);
+		}
+		if (data->ecn_bits >= 4 && should_mark(data->prob)) {
+			pci_flags = pci_flags_get(&du->pci);
+			pci_flags_set(&du->pci,
+				      pci_flags |= PDU_FLAGS_EXPLICIT_CONGESTION_4);
+			LOG_DBG("Queue length is %u, marked PDU with ECN4", qlen);
+		}
+		if (data->ecn_bits >= 5 && should_mark(data->prob)) {
+			pci_flags = pci_flags_get(&du->pci);
+			pci_flags_set(&du->pci,
+				      pci_flags |= PDU_FLAGS_EXPLICIT_CONGESTION_5);
+			LOG_DBG("Queue length is %u, marked PDU with ECN5", qlen);
+		}
+		if (data->ecn_bits >= 6 && should_mark(data->prob)) {
+			pci_flags = pci_flags_get(&du->pci);
+			pci_flags_set(&du->pci,
+				      pci_flags |= PDU_FLAGS_EXPLICIT_CONGESTION_6);
+			LOG_DBG("Queue length is %u, marked PDU with ECN6", qlen);
+		}
+		if (data->ecn_bits >= 7 && should_mark(data->prob)) {
+			pci_flags = pci_flags_get(&du->pci);
+			pci_flags_set(&du->pci,
+				      pci_flags |= PDU_FLAGS_EXPLICIT_CONGESTION_7);
+			LOG_DBG("Queue length is %u, marked PDU with ECN7", qlen);
+		}
+	}
 
 	if (!must_enqueue && rfifo_is_empty(q->queue))
 		return RMT_PS_ENQ_SEND;
 
 	rfifo_push_ni(q->queue, du);
+
 	return RMT_PS_ENQ_SCHED;
 }
 
@@ -365,16 +377,17 @@ static int lgcshq_rmt_ps_set_policy_set_param(struct ps_base *bps,
 		ret = kstrtouint(value, 10, &uival);
 		if (!ret) {
 			data->bandwidth = uival * 125U; // bytes / ms
-			LOG_INFO("Maximum link capacity is %u bytes per msec", uival);
+			LOG_INFO("Maximum link capacity is %u bytes per msec",
+				 uival);
 		}
 	}
 	if (strcmp(name, "ecn_bits") == 0) {
-      ret = kstrtouint(value, 10, &uival);
-      if (!ret && (uival > 0) && (uival < 8)) {
-        data->ecn_bits = uival;
-        LOG_INFO("Using %u ECN bits", uival);
-      }
-    };
+		ret = kstrtouint(value, 10, &uival);
+		if (!ret && (uival > 0) && (uival < 8)) {
+			data->ecn_bits = uival;
+			LOG_INFO("Using %u ECN bits", uival);
+		}
+	};
 
 	return 0;
 }
@@ -452,8 +465,17 @@ static struct ps_base * rmt_ps_lgcshq_create(struct rina_component *component)
 	ps->rmt_dequeue_policy = lgcshq_rmt_dequeue_policy;
 
 	LOG_INFO("LGCSHQ RMT: PS loaded, "
-		 "limit = %u, interval = %u, maxp = %u, alpha = %u, bw = %uMbps, ecn_bits = %u",
-		 data->limit, (u32)(PSCHED_TICKS2NS(data->interval))/NSEC_PER_MSEC, data->maxp, data->alpha, data->bandwidth/125, data->ecn_bits);
+		 "limit = %u, "
+		 "interval = %u, "
+		 "maxp = %u, "
+		 "alpha = %u, "
+		 "bw = %uMbps, "
+		 "ecn_bits = %u",
+		 data->limit,
+		 (u32)(PSCHED_TICKS2NS(data->interval))/NSEC_PER_MSEC,
+		 data->maxp, data->alpha,
+		 data->bandwidth/125,
+		 data->ecn_bits);
 
 	return &ps->base;
 }

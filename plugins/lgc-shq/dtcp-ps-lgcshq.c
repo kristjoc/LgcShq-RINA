@@ -2,6 +2,7 @@
  * LGCSHQ Policy Set for DTCP
  *
  *    Kr1stj0n C1k0 <kristjoc@uio.no>
+ *    Michal Koutenský <koutenmi@fit.vutbr.cz>
  *
  * This program is free software; you can dummyistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -194,34 +195,68 @@ static int lgcshq_rcvr_flow_control(struct dtcp_ps * ps, const struct pci * pci)
 	data->samples_received += data->ecn_bits;
 	pdu_flags_t pci_flags = pci_flags_get(pci);
 
-	if (pci_flags & PDU_FLAGS_EXPLICIT_CONGESTION) {
-		/* PDU is ECN-marked, decrease cwnd value */
-		data->ecn_received++;
+	if (data->ecn_bits >= 1) {
+		data->samples_received++;
+		if (pci_flags & PDU_FLAGS_EXPLICIT_CONGESTION) {
+			/* PDU is ECN-marked, decrease cwnd value */
+			data->ecn_received++;
+		}
+		lgc_update_rate(ps);
 	}
-	if (data->ecn_bits >= 2 && (pci_flags & PDU_FLAGS_EXPLICIT_CONGESTION_2)) {
-		data->ecn_received++;
+	if (data->ecn_bits >= 2) {
+		data->samples_received++;
+		if (pci_flags & PDU_FLAGS_EXPLICIT_CONGESTION_2) {
+			/* PDU is ECN-marked, decrease cwnd value */
+			data->ecn_received++;
+		}
+		lgc_update_rate(ps);
 	}
-	if (data->ecn_bits >= 3 && (pci_flags & PDU_FLAGS_EXPLICIT_CONGESTION_3)) {
-		data->ecn_received++;
+	if (data->ecn_bits >= 3) {
+		data->samples_received++;
+		if (pci_flags & PDU_FLAGS_EXPLICIT_CONGESTION_3) {
+			/* PDU is ECN-marked, decrease cwnd value */
+			data->ecn_received++;
+		}
+		lgc_update_rate(ps);
 	}
-	if (data->ecn_bits >= 4 && (pci_flags & PDU_FLAGS_EXPLICIT_CONGESTION_4)) {
-		data->ecn_received++;
+	if (data->ecn_bits >= 4) {
+		data->samples_received++;
+		if (pci_flags & PDU_FLAGS_EXPLICIT_CONGESTION_4) {
+			/* PDU is ECN-marked, decrease cwnd value */
+			data->ecn_received++;
+		}
+		lgc_update_rate(ps);
 	}
-	if (data->ecn_bits >= 5 && (pci_flags & PDU_FLAGS_EXPLICIT_CONGESTION_5)) {
-		data->ecn_received++;
+	if (data->ecn_bits >= 5) {
+		data->samples_received++;
+		if (pci_flags & PDU_FLAGS_EXPLICIT_CONGESTION_5) {
+			/* PDU is ECN-marked, decrease cwnd value */
+			data->ecn_received++;
+		}
+		lgc_update_rate(ps);
 	}
-	if (data->ecn_bits >= 6 && (pci_flags & PDU_FLAGS_EXPLICIT_CONGESTION_6)) {
-		data->ecn_received++;
+	if (data->ecn_bits >= 6) {
+		data->samples_received++;
+		if (pci_flags & PDU_FLAGS_EXPLICIT_CONGESTION_6) {
+			/* PDU is ECN-marked, decrease cwnd value */
+			data->ecn_received++;
+		}
+		lgc_update_rate(ps);
 	}
-	if (data->ecn_bits >= 7 && (pci_flags & PDU_FLAGS_EXPLICIT_CONGESTION_7)) {
-		data->ecn_received++;
+	if (data->ecn_bits >= 7) {
+		data->samples_received++;
+		if (pci_flags & PDU_FLAGS_EXPLICIT_CONGESTION_7) {
+			/* PDU is ECN-marked, decrease cwnd value */
+			data->ecn_received++;
+		}
+		lgc_update_rate(ps);
 	}
 
 	/* Update cwnd once every observation window */
 	if (data->samples_received >= data->obs_window_size  * data->ecn_bits) {
 		LOG_DBG("Received %u bits, with %u marked bits in this window",
 				 data->samples_received, data->ecn_received);
-		lgc_update_rate(ps);
+		/* lgc_update_rate(ps); */
 		lgc_set_cwnd(ps);
 
 		data->samples_received = 0;
@@ -230,13 +265,15 @@ static int lgcshq_rcvr_flow_control(struct dtcp_ps * ps, const struct pci * pci)
 	}
 
 	/* applying the TCP rule of not shrinking the window */
-	if (dtcp->parent->sv->rcv_left_window_edge + dtcp->sv->rcvr_credit > dtcp->sv->rcvr_rt_wind_edge)
+	if (dtcp->parent->sv->rcv_left_window_edge +
+	    dtcp->sv->rcvr_credit > dtcp->sv->rcvr_rt_wind_edge)
 		dtcp->sv->rcvr_rt_wind_edge =
-			dtcp->parent->sv->rcv_left_window_edge + dtcp->sv->rcvr_credit;
+			dtcp->parent->sv->rcv_left_window_edge +
+			dtcp->sv->rcvr_credit;
 
 
-	LOG_DBG("New credit is %u, # of bits with ECN set %u", dtcp->sv->rcvr_credit,
-		data->ecn_received);
+	LOG_DBG("New credit is %u, # of bits with ECN set %u",
+		dtcp->sv->rcvr_credit, data->ecn_received);
 
 	spin_unlock_bh(&dtcp->parent->sv_lock);
 
@@ -290,7 +327,7 @@ static int dtcp_ps_set_policy_set_param(struct ps_base * bps, const char * name,
 
 static int dtcp_ps_lgcshq_load_param(struct dtcp_ps *ps, const char *param_name)
 {
-    struct dtcp_config * dtcp_cfg;
+	struct dtcp_config * dtcp_cfg;
 	struct policy_parm * ps_param;
 
 	dtcp_cfg = ps->dm->cfg;
@@ -364,8 +401,8 @@ static struct ps_base * dtcp_ps_lgcshq_create(struct rina_component * component)
 	data->fraction = 0U;
 
 	LOG_INFO("LGC-ShQ DTCP policy created, "
-			 "lgc_max_rate = %u, min_RTT = %u ms, ecn_bits = %u",
-			 data->lgc_max_rate, data->min_RTT/USEC_PER_MSEC, data->ecn_bits);
+		 "lgc_max_rate = %u, min_RTT = %u ms, ecn_bits = %u",
+		 data->lgc_max_rate, data->min_RTT/USEC_PER_MSEC, data->ecn_bits);
 
 	return &ps->base;
 }
