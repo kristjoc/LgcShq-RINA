@@ -192,7 +192,6 @@ static int lgcshq_rcvr_flow_control(struct dtcp_ps * ps, const struct pci * pci)
 
 	spin_lock_bh(&dtcp->parent->sv_lock);
 
-	data->samples_received += data->ecn_bits;
 	pdu_flags_t pci_flags = pci_flags_get(pci);
 
 	if (data->ecn_bits >= 1) {
