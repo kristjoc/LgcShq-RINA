@@ -200,7 +200,6 @@ static int lgcshq_rcvr_flow_control(struct dtcp_ps * ps, const struct pci * pci)
 			/* PDU is ECN-marked, decrease cwnd value */
 			data->ecn_received++;
 		}
-		lgc_update_rate(ps);
 	}
 	if (data->ecn_bits >= 2) {
 		data->samples_received++;
@@ -208,7 +207,6 @@ static int lgcshq_rcvr_flow_control(struct dtcp_ps * ps, const struct pci * pci)
 			/* PDU is ECN-marked, decrease cwnd value */
 			data->ecn_received++;
 		}
-		lgc_update_rate(ps);
 	}
 	if (data->ecn_bits >= 3) {
 		data->samples_received++;
@@ -216,7 +214,6 @@ static int lgcshq_rcvr_flow_control(struct dtcp_ps * ps, const struct pci * pci)
 			/* PDU is ECN-marked, decrease cwnd value */
 			data->ecn_received++;
 		}
-		lgc_update_rate(ps);
 	}
 	if (data->ecn_bits >= 4) {
 		data->samples_received++;
@@ -224,7 +221,6 @@ static int lgcshq_rcvr_flow_control(struct dtcp_ps * ps, const struct pci * pci)
 			/* PDU is ECN-marked, decrease cwnd value */
 			data->ecn_received++;
 		}
-		lgc_update_rate(ps);
 	}
 	if (data->ecn_bits >= 5) {
 		data->samples_received++;
@@ -232,7 +228,6 @@ static int lgcshq_rcvr_flow_control(struct dtcp_ps * ps, const struct pci * pci)
 			/* PDU is ECN-marked, decrease cwnd value */
 			data->ecn_received++;
 		}
-		lgc_update_rate(ps);
 	}
 	if (data->ecn_bits >= 6) {
 		data->samples_received++;
@@ -240,7 +235,6 @@ static int lgcshq_rcvr_flow_control(struct dtcp_ps * ps, const struct pci * pci)
 			/* PDU is ECN-marked, decrease cwnd value */
 			data->ecn_received++;
 		}
-		lgc_update_rate(ps);
 	}
 	if (data->ecn_bits >= 7) {
 		data->samples_received++;
@@ -248,14 +242,13 @@ static int lgcshq_rcvr_flow_control(struct dtcp_ps * ps, const struct pci * pci)
 			/* PDU is ECN-marked, decrease cwnd value */
 			data->ecn_received++;
 		}
-		lgc_update_rate(ps);
 	}
 
 	/* Update cwnd once every observation window */
 	if (data->samples_received >= data->obs_window_size  * data->ecn_bits) {
 		LOG_DBG("Received %u bits, with %u marked bits in this window",
 				 data->samples_received, data->ecn_received);
-		/* lgc_update_rate(ps); */
+		lgc_update_rate(ps);
 		lgc_set_cwnd(ps);
 
 		data->samples_received = 0;
