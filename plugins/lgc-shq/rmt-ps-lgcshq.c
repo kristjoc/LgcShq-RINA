@@ -391,17 +391,19 @@ static int rmt_ps_load_param(struct rmt_ps *ps, const char *param_name)
 
         rmt_cfg = rmt_config_get(ps->dm);
 
-        if (rmt_cfg)
+        if (rmt_cfg) {
                 ps_param = policy_param_find(rmt_cfg->policy_set, param_name);
-        else
+        } else {
                 ps_param = NULL;
+        }
 
-        if (!ps_param)
+        if (!ps_param) {
                 LOG_WARN("LGCSHQ RMT: No PS param %s specified", param_name);
-        else
+        } else {
                 lgcshq_rmt_ps_set_policy_set_param(&ps->base,
                                                    policy_param_name(ps_param),
                                                    policy_param_value(ps_param));
+        }
 
         return 0;
 }

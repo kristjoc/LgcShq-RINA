@@ -76,10 +76,11 @@ static void lgc_update_rate(struct dtcp_ps *ps)
         delivered_ce /= max(delivered, 1U);
 
         /* update fraction */
-        if (delivered_ce >= rate_thresh)
+        if (delivered_ce >= data->rate_thresh) {
                 fraction = (ONE_MINUS_ALPHA * data->fraction) + (LGCSHQ_ALPHA * delivered_ce);
-        else
+        } else {
                 fraction = (ONE_MINUS_ALPHA * data->fraction);
+        }
 
         data->fraction = (fraction >> 16);
         if (data->fraction >= ONE)
@@ -140,12 +141,13 @@ static void lgc_update_rate(struct dtcp_ps *ps)
         new_rate64 >>= 16;
 
         /* new rate shouldn't increase more than twice */
-        if (new_rate64 > (rate64 << 1))
+        if (new_rate64 > (rate64 << 1)) {
                 rate64 <<= 1;
-        else if (new_rate64 == 0)
+        } else if (new_rate64 == 0) {
                 rate64 = 65536U;
-        else
+        } else {
                 rate64 = new_rate64;
+        }
 
         LOG_DBG("new rate %llu", new_rate64);
 
