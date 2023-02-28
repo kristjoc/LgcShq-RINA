@@ -187,6 +187,19 @@ static void lgc_set_cwnd(struct dtcp_ps *ps)
         dtcp->sv->rcvr_credit = cwnd;
 }
 
+/* Calculate the initial rate of the flow in bytes/mSec
+ * rate = init_credit * mss / rtt_ms
+ */
+static void lgc_init_rate(struct lgcshq_dtcp_ps_data *data)
+{
+	u64 init_rate = 0ULL;
+
+	init_rate = (u64)(data->init_credit * DEFAULT_PACKET_SIZE * 1000);
+	init_rate <<= 16; // scale the value with 16 bits
+	do_div(init_rate, data->min_RTT);
+
+	data->s_cur_rate64 = init_rate;
+}
 
 static int lgcshq_rcvr_flow_control(struct dtcp_ps * ps, const struct pci * pci)
 {
@@ -312,7 +325,7 @@ static int dtcp_ps_set_policy_set_param(struct ps_base * bps, const char * name,
         if (strcmp(name, "min_RTT") == 0) {
                 ret = kstrtoint(value, 10, &ival);
                 if (!ret) {
-                        data->min_RTT = ival * 1000;
+                        data->min_RTT = ival * 1010;
                 }
         }
 
@@ -401,7 +414,7 @@ static struct ps_base * dtcp_ps_lgcshq_create(struct rina_component * component)
         data->max_rate32 = data->lgc_max_rate * 125U;
         data->s_max_rate64 = data->max_rate32;
         data->s_max_rate64 <<= 16;
-        data->s_cur_rate64 = data->s_max_rate64;
+        data->s_cur_rate64 = lgc_init_rate(data);
         data->fraction = 0U;
 
         LOG_INFO("LGC-ShQ DTCP policy created, "
