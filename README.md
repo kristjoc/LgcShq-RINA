@@ -66,6 +66,7 @@ Once this is done, please install user-space dependencies
 
     $ apt-get update
     $ apt-get install autoconf automake libtool pkg-config git g++ libssl-dev protobuf-compiler libprotobuf-dev socat python linux-headers-$(uname -r)
+    $ apt-get install openjdk-11-jre openjdk-11-jdk
     $ apt-get install hostapd (if the system will be configured as an access point)
     $ apt-get install wpasupplicant (if the system will be configured as a mobile host)
 
@@ -1389,7 +1390,7 @@ The **list-systems** commands displays information about the MAs that are enroll
 
     IPCM >>> list-systems
             Managed Systems       
-        system id      MA name   |  port-id  
+        system id   Â   MA name   |  port-id  
            2   |   host1-1   |          8
            1   |   manager-1   |          7
 
