@@ -1,0 +1,67 @@
+#
+# Initial Makefile for PEPDNA
+#
+
+KERNBUILDDIR=@KERNBUILDDIR@
+RINADIR := $(HOME)/pep-dna/rina-stack
+CCNDIR := $(HOME)/pep-dna/ccn-lite
+PEPDNADIR := $(PWD)/kmodule/
+
+ccflags-y += -Wtype-limits
+ifeq ($(CONFIG_PEPDNA_DEBUG),y)
+ccflags-y += -g -DDEBUG
+ccflags-y += -DCONFIG_PEPDNA_DEBUG
+endif
+ifeq ($(CONFIG_PEPDNA_LOCALHOST),y)
+ccflags-y += -DCONFIG_PEPDNA_LOCALHOST
+endif
+ifeq ($(CONFIG_PEPDNA_RINA),y)
+KBUILD_EXTRA_SYMBOLS := $(RINADIR)/kernel/Module.symvers
+ccflags-y += -DCONFIG_PEPDNA_RINA
+ccflags-y += -I$(RINADIR)/kernel/
+ccflags-y += -I$(RINADIR)/include/
+EXTRA_CFLAGS += -I$(RINADIR)/include/
+endif
+ifeq ($(CONFIG_PEPDNA_CCN),y)
+ccflags-y += -DCONFIG_PEPDNA_CCN
+ccflags-y += -DCCNL_LINUXKERNEL
+ccflags-y += -DUSE_SUITE_NDNTLV
+ccflags-y += -DNEEDS_PACKET_CRAFTING
+ccflags-y += -I$(CCNDIR)/src/ccnl-core/include
+ccflags-y += -I$(CCNDIR)/src/ccnl-fwd/include
+ccflags-y += -I$(CCNDIR)/src/ccnl-pkt/include
+endif
+ifeq ($(CONFIG_PEPDNA_UDP),y)
+ccflags-y += -DCONFIG_PEPDNA_UDP
+endif
+
+obj-m += pepdna.o
+pepdna-y :=	core.o server.o connection.o netlink.o \
+		tcp.o tcp_listen.o tcp_connect.o hash.o \
+		tcp_utils.o
+
+pepdna-$(CONFIG_PEPDNA_RINA) += rina.o
+
+pepdna-$(CONFIG_PEPDNA_CCN) += ccn.o
+
+pepdna-$(CONFIG_SYSCTL) += sysctl.o
+
+ifeq ($(CONFIG_PEPDNA_RINA),y)
+all:
+	cp $(PEPDNADIR)/kfa/mykfa.h $(RINADIR)/kernel/kfa.h
+	cp $(PEPDNADIR)/kfa/mykfa.c $(RINADIR)/kernel/kfa.c
+	$(MAKE) -C $(KERNBUILDDIR) CONFIG_PEPDNA_RINA=@CONFIG_PEPDNA_RINA@ CONFIG_PEPDNA_CCN=@CONFIG_PEPDNA_CCN@ CONFIG_PEPDNA_UDP=@CONFIG_PEPDNA_UDP@ CONFIG_PEPDNA_DEBUG=@CONFIG_PEPDNA_DEBUG@ CONFIG_PEPDNA_LOCALHOST=@CONFIG_PEPDNA_LOCALHOST@ M=$(PEPDNADIR) modules
+	cp $(PEPDNADIR)/kfa/kfa.h $(RINADIR)/kernel/kfa.h
+	cp $(PEPDNADIR)/kfa/kfa.c $(RINADIR)/kernel/kfa.c
+else
+all:
+	$(MAKE) -C $(KERNBUILDDIR) CONFIG_PEPDNA_RINA=@CONFIG_PEPDNA_RINA@ CONFIG_PEPDNA_CCN=@CONFIG_PEPDNA_CCN@ CONFIG_PEPDNA_UDP=@CONFIG_PEPDNA_UDP@ CONFIG_PEPDNA_DEBUG=@CONFIG_PEPDNA_DEBUG@ CONFIG_PEPDNA_LOCALHOST=@CONFIG_PEPDNA_LOCALHOST@ M=$(PEPDNADIR) modules
+endif
+
+install:
+	$(MAKE) -C $(KERNBUILDDIR) M=$(PEPDNADIR) modules_install
+	depmod -a
+clean:
+	$(MAKE) -C $(KERNBUILDDIR) M=$(PEPDNADIR) clean
+uninstall:
+	rm -f /lib/modules/`uname -r`/extra/pepdna.ko

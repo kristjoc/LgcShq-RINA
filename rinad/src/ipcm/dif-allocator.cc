@@ -943,6 +943,8 @@ int DDAFlowAcceptor::run()
 	}
 
 	LOG_DBG("DIF Allocator flow acceptor exiting");
+
+	return 0;
 }
 
 //Class SDUReader

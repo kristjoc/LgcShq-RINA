@@ -4,7 +4,8 @@
 # Written by: Francesco Salvestrini <f DOT salvestrini AT nextworks DOT it>
 #
 
-SUBDIRS                            = common manager mac2ifname rlite key-managers rinacat tgen-apps
+SUBDIRS                            = common manager mac2ifname rlite \
+	key-managers rinacat flow-allocator tgen-apps
 EXTRA_DIST                         =
 DISTCLEANFILES                     =
 bin_PROGRAMS                       =
