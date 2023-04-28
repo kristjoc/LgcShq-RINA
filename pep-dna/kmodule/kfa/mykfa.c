@@ -1076,7 +1076,7 @@ int kfa_flow_du_read(struct kfa  *instance,
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4,11,0)
 				if (signal_pending(current)) {
 #else
-				if (unlikely(test_tsk_thread_flag(current, TIF_SIGPENDING))) {
+                                if (unlikely(test_tsk_thread_flag(current, TIF_SIGPENDING))) {
 #endif
 					LOG_DBG("A signal is pending");
 #if 0
@@ -1084,6 +1084,7 @@ int kfa_flow_du_read(struct kfa  *instance,
 						current->pending.signal.sig[0],
 						current->pending.signal.sig[1]);
 #endif
+				}
 				}
 			}
 
@@ -1159,6 +1160,7 @@ int kfa_flow_du_read(struct kfa  *instance,
 
 	return retval;
 }
+EXPORT_SYMBOL(kfa_flow_du_read)
 
 static int kfa_du_post(struct ipcp_instance_data *data,
 		       port_id_t		   id,
