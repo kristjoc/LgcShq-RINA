@@ -78,10 +78,10 @@ int kfa_flow_set_iowqs(struct kfa      * instance,
 int kfa_flow_cancel_iowqs(struct kfa      * instance,
 			   port_id_t pid);
 
-#if 0
+#if 1
 struct ipcp_flow *kfa_flow_find_by_pid(struct kfa *instance,
 				       port_id_t   pid);
-#endif /* 0 */
+#endif /* 1 */
 
 struct rmt;
 
