@@ -41,6 +41,10 @@ port_id_t   kfa_port_id_reserve(struct kfa      *instance,
 int	    kfa_port_id_release(struct kfa *instance,
 				port_id_t   port_id);
 
+int	    kfa_flow_du_write(struct kfa  *kfa,
+			      port_id_t   id,
+			      struct du   * du);
+
 int	    kfa_flow_skb_write(struct ipcp_instance_data * data,
 			       port_id_t   id,
 			       struct sk_buff * skb,
