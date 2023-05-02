@@ -5,7 +5,7 @@
 #
 
 SUBDIRS                            = common manager mac2ifname rlite \
-	key-managers rinacat flow-allocator tgen-apps
+	key-managers rinacat rinahttp rinahttping flow-allocator tgen-apps
 EXTRA_DIST                         =
 DISTCLEANFILES                     =
 bin_PROGRAMS                       =

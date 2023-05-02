@@ -186,6 +186,8 @@ AC_CONFIG_FILES([
     src/key-managers/Makefile
     src/rinacat/Makefile
     src/flow-allocator/Makefile
+    src/rinahttp/Makefile
+    src/rinahttping/Makefile
     src/tgen-apps/Makefile
 
     doc/Makefile
