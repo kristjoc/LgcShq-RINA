@@ -144,7 +144,7 @@ static double stddev(double *array)
 
 static void print_stats(double *array)
 {
-    printf("\n--- %s:%d myhttping statistics ---\n", ip_addr, port);
+    printf("\n--- %s:%d mhttping statistics ---\n", ip_addr, port);
     printf("round-trip min/avg/max/stddev = %.4f/%.4f/%.4f/%.4f ms\n",
             calc_min(array), calc_mean(array), calc_max(array),
             stddev(array));

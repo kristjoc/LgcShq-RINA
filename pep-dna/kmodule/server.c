@@ -48,7 +48,7 @@ struct pepdna_server *pepdna_srv = NULL;
 
 /* Static functions */
 static unsigned int pepdna_pre_hook(void *, struct sk_buff *,
-                const struct nf_hook_state *);
+				    const struct nf_hook_state *);
 static int init_pepdna_server(struct pepdna_server *);
 static int pepdna_i2i_start(struct pepdna_server *);
 #ifdef CONFIG_PEPDNA_RINA
@@ -91,9 +91,9 @@ int pepdna_work_init(struct pepdna_server *srv)
         }
         srv->accept_wq = wq;
 
-        if (srv->mode < 4) {	    /* TCP2TCP,TCP2RINA, TCP2CCN, RINA2TCP */
+        if (srv->mode < 4) {	    /* TCP2TCP, TCP2RINA, TCP2CCN, RINA2TCP */
                 wq = alloc_workqueue("connect_alloc_wq", WQ_HIGHPRI|WQ_UNBOUND,
-                                max_active);
+				     max_active);
                 if (!wq) {
                         pep_err("Couldn't alloc pepdna tc/fa workqueue");
                         goto free_tcfa_wq;
@@ -263,6 +263,8 @@ static unsigned int pepdna_pre_hook(void *priv, struct sk_buff *skb,
                                 syn->daddr  = iph->daddr;
                                 syn->dest   = tcph->dest;
 
+				print_syn(syn->saddr, syn->dest);
+
                                 con = pepdna_con_alloc(syn, skb, 0);
                                 if (!con) {
                                         pep_err("pepdna_con_alloc failed");
@@ -365,7 +367,7 @@ static int pepdna_i2r_start(struct pepdna_server *srv)
         }
 
         nf_register_net_hooks(&init_net, pepdna_nf_ops,
-                        ARRAY_SIZE(pepdna_nf_ops));
+			      ARRAY_SIZE(pepdna_nf_ops));
         return 0;
 }
 

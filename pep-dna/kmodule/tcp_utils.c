@@ -229,6 +229,21 @@ uint32_t inet_addr(char *ip)
         return *tmp;
 }
 
+void print_syn(__be32 daddr, __be16 dest)
+{
+	// Convert the values to host byte order
+	uint32_t ip_daddr = ntohl(daddr);
+	uint16_t tcp_dest = ntohs(dest);
+
+	// Print the values
+	pep_debug("PEP-DNA intercepted SYN packet destined to %d.%d.%d.%d:%d",
+		  (ip_daddr >> 24) & 0xFF,
+		  (ip_daddr >> 16) & 0xFF,
+		  (ip_daddr >> 8) & 0xFF,
+		  ip_daddr & 0xFF,
+		  tcp_dest);
+}
+
 /*
  * Return the hash(saddr, source) of the connected socket
  * ------------------------------------------------------------------------- */
