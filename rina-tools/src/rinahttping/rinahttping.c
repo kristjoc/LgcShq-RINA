@@ -308,10 +308,10 @@ int poll_fd(int fd, int poll_mode, int timeout)
 
 static int prepare_client_socket(void)
 {
-    char difName[12]   = "normal.DIF";
+    char difName[11]   = "normal.DIF";
     char remoteAPN[12] = "rinahttping";
-    struct rina_flow_spec flowspec;
     char localAPN[11]  = "rinaclient";
+    struct rina_flow_spec flowspec;
     int sock = 0;
 
     /* Issue a non-blocking flow allocation request, asking for a reliable
@@ -320,6 +320,7 @@ static int prepare_client_socket(void)
     flowspec.max_sdu_gap       = 0; /* reliable QoS cube */
     flowspec.in_order_delivery = 1;
     flowspec.msg_boundaries    = 0;
+
     sock = rina_flow_alloc(difName, localAPN, remoteAPN, &flowspec, 0);
     if (sock < 0) {
         perror("rina_flow_alloc");
@@ -615,7 +616,7 @@ static void pong(int sock)
 
 static int prepare_server_socket(void)
 {
-    char difName[12] = "normal.DIF";
+    char difName[11] = "normal.DIF";
     char localAPN[12] = "rinahttping";
     int cfd, regfd;
 
@@ -970,7 +971,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    while ((opt = getopt(argc, argv, "sfmc:p:ian:")) != -1) {
+    while ((opt = getopt(argc, argv, "ac:fsimn:p:")) != -1) {
         switch (opt) {
             case 's':
                 if (cflag == 1) {

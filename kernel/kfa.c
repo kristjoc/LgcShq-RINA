@@ -572,7 +572,7 @@ int kfa_flow_du_write(struct kfa  *kfa,
 	if (!flow) {
 		spin_unlock_bh(&kfa->lock);
 		du_destroy(du);
-		LOG_DBG("There is no flow bound to port-id %d", id);
+		LOG_ERR("There is no flow bound to port-id %d", id);
 		return -EBADF;
 	}
 	if (flow->state == PORT_STATE_DEALLOCATED) {
@@ -1041,7 +1041,7 @@ int kfa_flow_du_read(struct kfa  *instance,
 
 	flow = kfa_pmap_find(instance->flows, id);
 	if (!flow) {
-		LOG_DBG("There is no flow bound to port-id %d", id);
+		LOG_ERR("There is no flow bound to port-id %d", id);
 		spin_unlock_bh(&instance->lock);
 		return -EBADF;
 	}

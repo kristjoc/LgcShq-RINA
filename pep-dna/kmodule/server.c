@@ -263,18 +263,22 @@ static unsigned int pepdna_pre_hook(void *priv, struct sk_buff *skb,
                                 syn->daddr  = iph->daddr;
                                 syn->dest   = tcph->dest;
 
-				print_syn(syn->saddr, syn->dest);
-
-                                con = pepdna_con_alloc(syn, skb, 0);
+                                con = pepdna_con_alloc(syn, skb, hash_id, 0);
                                 if (!con) {
                                         pep_err("pepdna_con_alloc failed");
                                         kfree(syn);
                                         return NF_DROP;
                                 }
+
+				print_syn(syn->daddr, syn->dest);
                                 kfree(syn);
+
                                 consume_skb(skb);
                                 return NF_STOLEN;
-                        }
+                        } else {
+				pep_debug("Dropping duplicate SYN");
+				return NF_DROP;
+			}
                 }
         }
 
