@@ -23,6 +23,7 @@
 #include "connection.h"
 #include "netlink.h"
 #include "tcp_utils.h"
+#include "hash.h"
 
 #include <linux/version.h>
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4,11,0)
@@ -294,6 +295,7 @@ void nl_r2i_callback(struct nl_msg *nlmsg)
 {
         struct pepdna_con *con = NULL;
         struct syn_tuple *syn  = NULL;
+	uint32_t hash_id;
 
         pep_debug("r2i_callback is being called");
         if (nlmsg->alloc) {
@@ -308,7 +310,8 @@ void nl_r2i_callback(struct nl_msg *nlmsg)
                 syn->daddr  = cpu_to_be32(nlmsg->daddr);
                 syn->dest   = cpu_to_be16(nlmsg->dest);
 
-                con = pepdna_con_alloc(syn, NULL, nlmsg->port_id);
+		hash_id = pepdna_hash32_rjenkins1_2(syn->saddr, syn->source);
+                con = pepdna_con_alloc(syn, NULL, hash_id, nlmsg->port_id);
                 if (!con)
                         pep_err("pepdna_con_alloc");
 
