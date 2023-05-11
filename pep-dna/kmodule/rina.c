@@ -38,23 +38,18 @@
  * ------------------------------------------------------------------------- */
 bool flow_is_ok(struct ipcp_flow *flow)
 {
-        if (!flow) {
-                //pep_debug("Flow is NULL");
-                return false; /* Flow is NULL */
-        }
-        if (flow && flow->state < 0) { /* flow->state not valid */
-                //pep_debug("Flow state invalid");
+        if (!flow || flow->state < 0 || !flow->wqs) {
+                pep_debug("IPCP flow is not OK");
                 return false;
         }
-        if (flow && !flow->wqs) {
-                //pep_debug("Flow wqs are NULL");
-                return false; /* Flow waitqueues are NULL */
-        }
-        if (flow->state == PORT_STATE_ALLOCATED || flow->state == PORT_STATE_DISABLED) {
-                //pep_debug("Flow ALLOCATED | DISABLED");
+
+	if (flow->state == PORT_STATE_ALLOCATED ||
+	    flow->state == PORT_STATE_DISABLED) {
+                pep_debug("IPCP flow is in ALLOCATED | DISABLED state");
                 return true;
         }
-        return false;
+
+	return false;
 }
 
 /*
@@ -66,7 +61,7 @@ bool queue_is_ready(struct ipcp_flow *flow)
                 return true;
 
         if (flow && flow->state != PORT_STATE_PENDING
-                        &&!rfifo_is_empty(flow->sdu_ready)) {
+	    &&!rfifo_is_empty(flow->sdu_ready)) {
                 if (!rfifo_is_empty(flow->sdu_ready))
                         return true;
         }
@@ -118,52 +113,52 @@ long pepdna_wait_for_sdu(struct ipcp_flow *flow)
 int pepdna_flow_write(struct ipcp_flow *flow, int pid, unsigned char *buf,
                       size_t len)
 {
-    struct ipcp_instance *ipcp = NULL;
-    struct du *du              = NULL;
-    size_t left                = len;
-    size_t max_du_size         = 0;
-    size_t copylen             = 0;
-    size_t sent                = 0;
-    int rc                     = 0;
+	struct ipcp_instance *ipcp = NULL;
+	struct du *du              = NULL;
+	size_t left                = len;
+	size_t max_du_size         = 0;
+	size_t copylen             = 0;
+	size_t sent                = 0;
+	int rc                     = 0;
 
-    if (!flow) {
-        pep_err("No flow bound to port_id %d", pid);
-        return -EBADF;
-    }
+	if (!flow) {
+		pep_err("No flow bound to port_id %d", pid);
+		return -EBADF;
+	}
 
-    if (flow->state < 0) {
-        pep_err("Flow with port_id %d is already deallocated", pid);
-        return -ESHUTDOWN;
-    }
+	if (flow->state < 0) {
+		pep_err("Flow with port_id %d is already deallocated", pid);
+		return -ESHUTDOWN;
+	}
 
-    ipcp = flow->ipc_process;
+	ipcp = flow->ipc_process;
 
-    max_du_size = ipcp->ops->max_sdu_size(ipcp->data);
+	max_du_size = ipcp->ops->max_sdu_size(ipcp->data);
 
-    while (left) {
-        copylen = min(left, max_du_size);
-        du = du_create(copylen);
-        if (!du) {
-            rc = -ENOMEM;
-            goto out;
-        }
+	while (left) {
+		copylen = min(left, max_du_size);
+		du = du_create(copylen);
+		if (!du) {
+			rc = -ENOMEM;
+			goto out;
+		}
 
-        memcpy(du_buffer(du), buf + sent, copylen);
+		memcpy(du_buffer(du), buf + sent, copylen);
 
-        if (ipcp->ops->du_write(ipcp->data, pid, du, false)) {
-            pep_err("Couldn't write SDU to port_id %d", pid);
-            rc = -EIO;
-            goto out;
-        }
+		if (ipcp->ops->du_write(ipcp->data, pid, du, false)) {
+			pep_err("Couldn't write SDU to port_id %d", pid);
+			rc = -EIO;
+			goto out;
+		}
 
-        left -= copylen;
-        sent += copylen;
-    }
+		left -= copylen;
+		sent += copylen;
+	}
 out:
-    if (sent == 0)
-        return rc;
-    else
-        return sent;
+	if (sent == 0)
+		return rc;
+	else
+		return sent;
 }
 
 
@@ -192,15 +187,39 @@ out:
  * ------------------------------------------------------------------------- */
 bool flow_is_ready(struct pepdna_con *con)
 {
-    struct ipcp_flow *flow = kfa_flow_find_by_pid(kipcm_kfa(default_kipcm),
-                                                  atomic_read(&con->port_id));
-    if (flow) {
-        pep_debug("Flow with port_id %d is now ready", atomic_read(&con->port_id));
-        con->flow = flow;
-    } else
-        pep_debug("Flow with port_id %d is not ready yet", atomic_read(&con->port_id));
+	struct ipcp_flow *flow = NULL;
 
-    return flow && atomic_read(&con->port_id);
+	flow = kfa_flow_find_by_pid(kipcm_kfa(default_kipcm),
+				    atomic_read(&con->port_id));
+	if (flow) {
+		pep_debug("Flow with port_id %d is now ready",
+			  atomic_read(&con->port_id));
+		con->flow = flow;
+	} else {
+		pep_debug("Flow with port_id %d is not ready yet",
+			  atomic_read(&con->port_id));
+	}
+
+	return flow && atomic_read(&con->port_id);
+}
+
+/*
+ * Allocate wqs for the flow
+ * ------------------------------------------------------------------------- */
+static int pepdna_flow_set_iowqs(struct ipcp_flow *flow)
+{
+	struct iowaitqs *wqs = NULL;
+
+	wqs = rkzalloc(sizeof(struct iowaitqs), GFP_KERNEL);
+        if (!wqs)
+        	return -ENOMEM;
+
+	init_waitqueue_head(&wqs->read_wqueue);
+	init_waitqueue_head(&wqs->write_wqueue);
+
+	flow->wqs = wqs;
+
+	return 0;
 }
 
 /*
@@ -208,43 +227,42 @@ bool flow_is_ready(struct pepdna_con *con)
  * ------------------------------------------------------------------------- */
 int pepdna_con_r2i_fwd(struct pepdna_con *con)
 {
-    struct kfa *kfa      = kipcm_kfa(default_kipcm);
-    struct socket *lsock = con->lsock;
-    struct du *du        = NULL;
-    int port_id          = atomic_read(&con->port_id);
-    bool blocking        = false; /* Don't block while reading from the flow */
-    signed long timeo    = 0;
-    int rc = 0, rs       = 0;
+	struct kfa *kfa      = kipcm_kfa(default_kipcm);
+	struct socket *lsock = con->lsock;
+	struct du *du        = NULL;
+	int port_id          = atomic_read(&con->port_id);
+	bool blocking        = false; /* Don't block while reading from the flow */
+	signed long timeo    = 0;
+	int rc = 0, rs       = 0;
 
-    IRQ_BARRIER;
+	IRQ_BARRIER;
 
-    while (rconnected(con)) {
-        timeo = pepdna_wait_for_sdu(con->flow);
-        if (timeo > 0)
-            break;
-        if (timeo == -ERESTARTSYS || timeo == -ESHUTDOWN || timeo == -EINTR) {
-                rc = -1;
-                goto out;
-        }
-    }
+	while (rconnected(con)) {
+		timeo = pepdna_wait_for_sdu(con->flow);
+		if (timeo > 0)
+			break;
+		if (timeo == -ERESTARTSYS || timeo == -ESHUTDOWN || timeo == -EINTR) {
+			rc = -1;
+			goto out;
+		}
+	}
 
-    rs = kfa_flow_du_read(kfa, port_id, &du, MAX_SDU_SIZE, blocking);
-    if (rs <= 0) {
-        pep_debug("kfa_flow_du_read %d", rs);
-        return rs;
-    }
+	rs = kfa_flow_du_read(kfa, port_id, &du, MAX_SDU_SIZE, blocking);
+	if (rs <= 0) {
+		pep_debug("kfa_flow_du_read %d", rs);
+		return rs;
+	}
 
-    if (!is_du_ok(du))
-        return -EIO;
+	if (!is_du_ok(du))
+		return -EIO;
 
-    rc = pepdna_sock_write(lsock, du_buffer(du), rs);
-    if (rc <= 0) {
-        pep_debug("pepdna_sock_write %d", rc);
-    }
+	rc = pepdna_sock_write(lsock, du_buffer(du), rs);
+	if (rc <= 0)
+		pep_debug("pepdna_sock_write %d", rc);
 
-    du_destroy(du);
+	du_destroy(du);
 out:
-    return rc;
+	return rc;
 }
 
 /*
@@ -252,40 +270,40 @@ out:
  * ------------------------------------------------------------------------- */
 int pepdna_con_i2r_fwd(struct pepdna_con *con)
 {
-    struct socket *lsock   = con->lsock;
-    struct ipcp_flow *flow = con->flow;
-    unsigned char *buffer  = NULL;
-    int port_id = atomic_read(&con->port_id);
-    int rc = 0, rs = 0;
+	struct socket *lsock   = con->lsock;
+	struct ipcp_flow *flow = con->flow;
+	unsigned char *buffer  = NULL;
+	int port_id = atomic_read(&con->port_id);
+	int rc = 0, rs = 0;
 
-    struct msghdr msg = {
-        .msg_flags = MSG_DONTWAIT,
-    };
-    struct kvec vec;
+	struct msghdr msg = {
+		.msg_flags = MSG_DONTWAIT,
+	};
+	struct kvec vec;
 
-    /* allocate buffer memory */
-    buffer = kzalloc(MAX_BUF_SIZE, GFP_KERNEL);
-    if (!buffer) {
-        pep_err("Failed to alloc buffer");
-        return -ENOMEM;
-    }
-    vec.iov_base = buffer;
-    vec.iov_len  = MAX_BUF_SIZE;
-    rc = kernel_recvmsg(lsock, &msg, &vec, 1, vec.iov_len, MSG_DONTWAIT);
-    if (rc > 0) {
-        rs = pepdna_flow_write(flow, port_id, buffer, rc);
-        if (rs <= 0) {
-            pep_err("Couldn't write to flow %d", port_id);
-            kfree(buffer);
-            return rs;
-        }
-    } else {
-        if (rc == -EAGAIN || rc == -EWOULDBLOCK)
-            pep_debug("kernel_recvmsg() returned %d", rc);
-    }
+	/* allocate buffer memory */
+	buffer = kzalloc(MAX_BUF_SIZE, GFP_KERNEL);
+	if (!buffer) {
+		pep_err("Failed to alloc buffer");
+		return -ENOMEM;
+	}
+	vec.iov_base = buffer;
+	vec.iov_len  = MAX_BUF_SIZE;
+	rc = kernel_recvmsg(lsock, &msg, &vec, 1, vec.iov_len, MSG_DONTWAIT);
+	if (rc > 0) {
+		rs = pepdna_flow_write(flow, port_id, buffer, rc);
+		if (rs <= 0) {
+			pep_err("Couldn't write to flow %d", port_id);
+			kfree(buffer);
+			return rs;
+		}
+	} else {
+		if (rc == -EAGAIN || rc == -EWOULDBLOCK)
+			pep_debug("kernel_recvmsg() returned %d", rc);
+	}
 
-    kfree(buffer);
-    return rc;
+	kfree(buffer);
+	return rc;
 }
 
 /*
@@ -300,7 +318,7 @@ void nl_r2i_callback(struct nl_msg *nlmsg)
         pep_debug("r2i_callback is being called");
         if (nlmsg->alloc) {
                 syn = (struct syn_tuple *)kzalloc(sizeof(struct syn_tuple),
-                                GFP_ATOMIC);
+						  GFP_ATOMIC);
                 if (IS_ERR(syn)) {
                         pep_err("kzalloc");
                         return;
@@ -311,7 +329,7 @@ void nl_r2i_callback(struct nl_msg *nlmsg)
                 syn->dest   = cpu_to_be16(nlmsg->dest);
 
 		hash_id = pepdna_hash32_rjenkins1_2(syn->saddr, syn->source);
-                con = pepdna_con_alloc(syn, NULL, hash_id, nlmsg->port_id);
+                con = pepdna_con_alloc(syn, NULL, hash_id, 0ull, nlmsg->port_id);
                 if (!con)
                         pep_err("pepdna_con_alloc");
 
@@ -327,7 +345,11 @@ void nl_r2i_callback(struct nl_msg *nlmsg)
                         /* At this point, right TCP connection is established
                          * and RINA flow is allocated. Queue r2i_work now!
                          */
-                        atomic_set(&con->rflag, 1);
+
+			if (!con->flow->wqs)
+				pepdna_flow_set_iowqs(con->flow);
+
+			atomic_set(&con->rflag, 1);
                         atomic_set(&con->lflag, 1);
                         if (!queue_work(con->server->r2l_wq, &con->r2l_work)) {
                                 pep_err("r2i_work was already on a queue");
@@ -346,7 +368,9 @@ void nl_r2i_callback(struct nl_msg *nlmsg)
  * ------------------------------------------------------------------------- */
 void nl_i2r_callback(struct nl_msg *nlmsg)
 {
-        struct pepdna_con *con = pepdna_con_find(nlmsg->hash_conn_id);
+        struct pepdna_con *con = NULL;
+
+	con = pepdna_con_find(nlmsg->hash_conn_id);
         if (!con) {
                 pep_err("Connection not found in Hash Table");
                 return;
@@ -368,7 +392,17 @@ void nl_i2r_callback(struct nl_msg *nlmsg)
 		 * free the skb. Your code is no longer the owner of
 		 * that skb since you've given it to the network
 		 * stack. */
-        }
+
+		if (!con->flow->wqs)
+			pepdna_flow_set_iowqs(con->flow);
+
+		/* Queue RINA-to-INTERNET work right now */
+		if (!queue_work(con->server->r2l_wq, &con->r2l_work)) {
+			pep_err("r2i_work already in queue");
+			pepdna_con_put(con);
+			return;
+		}
+	}
 
         pep_debug("i2r_callback terminated");
 }
@@ -389,10 +423,10 @@ void pepdna_con_i2r_work(struct work_struct *work)
 
                         /* Tell fallocator in userspace to dealloc. the flow */
                         rc = pepdna_nl_sendmsg(0, 0, 0, 0, con->hash_conn_id,
-                                        atomic_read(&con->port_id), 0);
+					       atomic_read(&con->port_id), 0);
                         if (rc < 0)
                                 pep_err("Couldn't notify fallocator to dealloc"
-                                                " the flow");
+					" the flow");
                         pepdna_con_close(con);
                         break;
                 }
