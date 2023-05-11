@@ -69,6 +69,7 @@ struct syn_tuple {
  * @lflag:     indicates left connection state
  * @rflag:     indicates left connection state
  * @hash_conn_id: 32-bit hash connection identifier
+ * @ts:        timestamp of the first incoming SYN
  * @tuple:     connection tuple
  * @skb:       initial SYN sk_buff
  */
@@ -88,6 +89,7 @@ struct pepdna_con {
 	atomic_t lflag;
 	atomic_t rflag;
 	__u32 hash_conn_id;
+	__u64 ts;
 	struct syn_tuple tuple;
 	struct sk_buff *skb;
 };
@@ -98,6 +100,7 @@ bool rconnected(struct pepdna_con *);
 struct pepdna_con *pepdna_con_alloc(struct syn_tuple *,
 				    struct sk_buff *,
 				    uint32_t,
+				    uint64_t,
 				    int);
 struct pepdna_con *pepdna_con_find(uint32_t);
 void pepdna_con_get(struct pepdna_con *);

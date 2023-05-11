@@ -237,7 +237,8 @@ static unsigned int pepdna_pre_hook(void *priv, struct sk_buff *skb,
         struct syn_tuple *syn  = NULL;
         const struct iphdr *iph;
         const struct tcphdr *tcph;
-        uint32_t hash_id = 0;
+        uint32_t hash_id = 0u;
+	uint64_t ts = 0ull;
 
         if (!skb)
                 return NF_ACCEPT;
@@ -263,7 +264,11 @@ static unsigned int pepdna_pre_hook(void *priv, struct sk_buff *skb,
                                 syn->daddr  = iph->daddr;
                                 syn->dest   = tcph->dest;
 
-                                con = pepdna_con_alloc(syn, skb, hash_id, 0);
+				/* Store tstamp to detect the reinjected SYN */
+				ts = ktime_get_real_fast_ns();
+				skb->tstamp = ts;
+
+                                con = pepdna_con_alloc(syn, skb, hash_id, ts, 0);
                                 if (!con) {
                                         pep_err("pepdna_con_alloc failed");
                                         kfree(syn);
@@ -276,8 +281,10 @@ static unsigned int pepdna_pre_hook(void *priv, struct sk_buff *skb,
                                 consume_skb(skb);
                                 return NF_STOLEN;
                         } else {
-				pep_debug("Dropping duplicate SYN");
-				return NF_DROP;
+				if (skb->tstamp != con->ts) {
+					pep_debug("Dropping duplicate SYN");
+					return NF_DROP;
+				}
 			}
                 }
         }

@@ -363,6 +363,11 @@ void nl_i2r_callback(struct nl_msg *nlmsg)
         if (flow_is_ready(con)) {
                 atomic_set(&con->rflag, 1);
                 netif_receive_skb(con->skb);
+
+		/* After you call netif_receive_skb, you should not
+		 * free the skb. Your code is no longer the owner of
+		 * that skb since you've given it to the network
+		 * stack. */
         }
 
         pep_debug("i2r_callback terminated");
