@@ -61,8 +61,8 @@ static void daemonize(void)
         exit(EXIT_FAILURE);
     }
 
-    if (chdir("/var/www/web"))
-        exit(EXIT_FAILURE);
+    /* if (chdir("/var/www/web")) */
+    /*     exit(EXIT_FAILURE); */
 }
 
 static double diff_time_ms(struct timespec start, struct timespec end) {
@@ -594,24 +594,26 @@ static void cpumem_cln_perf()
 /*****************************************************************************/
 static void pong(int sock)
 {
-    int rc = 0;
+    int i, rc = 0;
     char ping[128] = {0};
     char pong[128] = {0};
 
-    for (int i = 0; i < 101;  i++) {
+    for (i = 0; i < 101;  i++) {
         rc = read(sock, ping, sizeof(ping));
         if (rc <= 0) {
             /* perror("read"); */
             close(sock);
-            return;
+	    break;
         }
         rc = write(sock, pong, sizeof(pong));
         if (rc < 0) {
             /* perror("write"); */
             close(sock);
-            return;
+            break;
         }
     }
+
+    printf("rinahttping recvd/send %d ping/pongs\n", i);
 }
 
 static int prepare_server_socket(void)

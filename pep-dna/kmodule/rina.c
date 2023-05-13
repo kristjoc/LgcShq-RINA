@@ -43,8 +43,7 @@ bool flow_is_ok(struct ipcp_flow *flow)
                 return false;
         }
 
-	if (flow->state == PORT_STATE_ALLOCATED ||
-	    flow->state == PORT_STATE_DISABLED) {
+	if (flow->state == PORT_STATE_ALLOCATED || flow->state == PORT_STATE_DISABLED) {
                 pep_debug("IPCP flow is in ALLOCATED | DISABLED state");
                 return true;
         }
@@ -57,15 +56,10 @@ bool flow_is_ok(struct ipcp_flow *flow)
  * ------------------------------------------------------------------------- */
 bool queue_is_ready(struct ipcp_flow *flow)
 {
-        if (!flow_is_ok(flow))
-                return true;
+        if (!flow_is_ok(flow) || !rfifo_is_empty(flow->sdu_ready))
+		return true;
 
-        if (flow && flow->state != PORT_STATE_PENDING
-	    &&!rfifo_is_empty(flow->sdu_ready)) {
-                if (!rfifo_is_empty(flow->sdu_ready))
-                        return true;
-        }
-        return false;
+	return false;
 }
 
 /*
@@ -77,29 +71,29 @@ long pepdna_wait_for_sdu(struct ipcp_flow *flow)
         signed long timeo = (signed long)usecs_to_jiffies(FLOW_POLL_TIMEOUT);
 
         for (;;) {
-                if (flow_is_ok(flow))
+                if (flow_is_ok(flow)) {
                         prepare_to_wait(&flow->wqs->read_wqueue, &wq_entry,
                                         TASK_INTERRUPTIBLE);
-                else {
+		} else {
                         timeo = -ESHUTDOWN;
                         return timeo;
                 }
+
                 if (timeo && rfifo_is_empty(flow->sdu_ready)) {
                         timeo = schedule_timeout(timeo);
                 }
-                if (queue_is_ready(flow))
+                if (!timeo || queue_is_ready(flow))
                         break;
-                if (!timeo)
-                        break;
+
                 if (signal_pending(current)) {
                         timeo = -ERESTARTSYS;
                         break;
                 }
         }
 
-        if (flow_is_ok(flow))
+        if (flow_is_ok(flow)) {
                 finish_wait(&flow->wqs->read_wqueue, &wq_entry);
-        else {
+	} else {
                 timeo = -ESHUTDOWN;
                 __set_current_state(TASK_RUNNING);
         }
@@ -195,6 +189,7 @@ bool flow_is_ready(struct pepdna_con *con)
 		pep_debug("Flow with port_id %d is now ready",
 			  atomic_read(&con->port_id));
 		con->flow = flow;
+		con->flow->state = PORT_STATE_ALLOCATED;
 	} else {
 		pep_debug("Flow with port_id %d is not ready yet",
 			  atomic_read(&con->port_id));
@@ -351,6 +346,7 @@ void nl_r2i_callback(struct nl_msg *nlmsg)
 
 			atomic_set(&con->rflag, 1);
                         atomic_set(&con->lflag, 1);
+
                         if (!queue_work(con->server->r2l_wq, &con->r2l_work)) {
                                 pep_err("r2i_work was already on a queue");
                                 pepdna_con_put(con);
@@ -372,7 +368,7 @@ void nl_i2r_callback(struct nl_msg *nlmsg)
 
 	con = pepdna_con_find(nlmsg->hash_conn_id);
         if (!con) {
-                pep_err("Connection not found in Hash Table");
+                pep_err("Connection not found in Hash table");
                 return;
         }
         atomic_set(&con->port_id, nlmsg->port_id);
@@ -386,22 +382,15 @@ void nl_i2r_callback(struct nl_msg *nlmsg)
 
         if (flow_is_ready(con)) {
                 atomic_set(&con->rflag, 1);
-                netif_receive_skb(con->skb);
-
-		/* After you call netif_receive_skb, you should not
-		 * free the skb. Your code is no longer the owner of
-		 * that skb since you've given it to the network
-		 * stack. */
 
 		if (!con->flow->wqs)
 			pepdna_flow_set_iowqs(con->flow);
 
-		/* Queue RINA-to-INTERNET work right now */
-		if (!queue_work(con->server->r2l_wq, &con->r2l_work)) {
-			pep_err("r2i_work already in queue");
-			pepdna_con_put(con);
-			return;
-		}
+                netif_receive_skb(con->skb);
+		/* After you call netif_receive_skb, you should not
+		 * free the skb. Your code is no longer the owner of
+		 * that skb since you've given it to the network
+		 * stack. */
 	}
 
         pep_debug("i2r_callback terminated");

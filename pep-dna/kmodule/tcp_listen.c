@@ -154,6 +154,15 @@ static int pepdna_tcp_accept(struct pepdna_server *srv)
                 atomic_set(&con->rflag, 1);
                 write_unlock_bh(&lsk->sk_callback_lock);
 
+		if (srv->mode == TCP2RINA) {
+                        /* Queue RINA-to-INTERNET work right now */
+                        if (!queue_work(srv->r2l_wq, &con->r2l_work)) {
+                                pep_err("r2i_work already in queue");
+                                pepdna_con_put(con);
+                                return -1;
+                        }
+                }
+
                 /* Wake up both sockets */
                 lsk->sk_data_ready(lsk);
                 if (con->rsock) {
