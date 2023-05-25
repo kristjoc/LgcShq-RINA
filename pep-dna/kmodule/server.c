@@ -309,7 +309,11 @@ static const struct nf_hook_ops pepdna_nf_ops[] = {
         {
                 .hook     = pepdna_pre_hook,
                 .pf       = NFPROTO_IPV4,
+#ifndef CONFIG_PEPDNA_LOCAL_SENDER
                 .hooknum  = NF_INET_PRE_ROUTING,
+#else
+                .hooknum  = NF_INET_LOCAL_OUT,
+#endif
                 .priority = NF_PEPDNA_PRI,
         },
 };
