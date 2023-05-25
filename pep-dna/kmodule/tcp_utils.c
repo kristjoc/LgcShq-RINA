@@ -84,19 +84,11 @@ void pepdna_ip_transparent(struct socket *sock)
 	}
 }
 
-void pepdna_set_mark(struct socket *sock, int val)
+void pepdna_set_mark(struct socket *sock, u32 val)
 {
-	sockptr_t optval;
-        int rc = 0;
+	sock_set_mark(sock->sk, val);
 
-	optval.kernel = (void *)&val;
-	optval.is_kernel = true;
-
-	rc = ip_setsockopt(sock->sk, SOL_SOCKET, SO_MARK, optval,
-			   sizeof(optval));
-	if (rc < 0) {
-		pep_err("Failed to mark socket with mark %d\n", val);
-	}
+	pep_debug("Marked socket with mark %u", val);
 }
 
 /*

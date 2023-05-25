@@ -27,6 +27,10 @@
 #include "rina.h"
 #endif
 
+#ifdef CONFIG_PEPDNA_LOCAL_SENDER
+#include <net/ip.h>
+#endif
+
 /*
  * TCP2TCP | RINA2TCP  scenario
  * Connect to TCP|RINA server upon accepting the connection
@@ -54,7 +58,7 @@ void pepdna_tcp_connect(struct work_struct *work)
 	saddr.sin_port        = con->tuple.source;
 
 	daddr.sin_family      = AF_INET;
-#ifdef CONFIG_PEPDNA_LOCALHOST
+#ifdef CONFIG_PEPDNA_LOCAL_RECEIVER
 	daddr.sin_addr.s_addr = (__force u32)htonl(INADDR_LOOPBACK);
 #else
 	daddr.sin_addr.s_addr = con->tuple.daddr;
@@ -68,13 +72,19 @@ void pepdna_tcp_connect(struct work_struct *work)
 	pepdna_tcp_nodelayedack(sock);
 	/* Set IP_TRANSPARENT sock option so that we can bind original nonlocal IP
 	 * address and TCP port in order to spoof client */
+#ifndef CONFIG_PEPDNA_LOCAL_SENDER
 	pepdna_ip_transparent(sock);
+#endif
 	/* Mark the socket with 333 MARK. This is only used when PEPDNA is at the
-	 * same host as the server or CCN relay */
-#ifdef CONFIG_PEPDNA_LOCALHOST
+	 * same host as the sender/receiver or CCN relay */
+#ifdef CONFIG_PEPDNA_LOCAL_SENDER
+	pepdna_set_mark(sock, PEPDNA_SOCK_MARK);
+#endif
+#ifdef CONFIG_PEPDNA_LOCAL_RECEIVER
 	pepdna_set_mark(sock, PEPDNA_SOCK_MARK);
 #endif
 
+#ifndef CONFIG_PEPDNA_LOCAL_SENDER
 	/* 4. Bind before connect to spoof source IP and Port */
 	rc = kernel_bind(sock, (struct sockaddr*)&saddr, sizeof(saddr));
 	if (rc < 0) {
@@ -82,6 +92,7 @@ void pepdna_tcp_connect(struct work_struct *work)
 		sock_release(sock);
 		goto err;
 	}
+#endif
 
 	/* 5. Connect to Target Host */
 	rc = kernel_connect(sock, (struct sockaddr*)&daddr, sizeof(daddr), 0);
@@ -109,7 +120,12 @@ void pepdna_tcp_connect(struct work_struct *work)
 	     * pepdna_tcp_accept() will take care of it.
 	     */
 		pep_debug("Reinjecting initial SYN packet");
+#ifndef CONFIG_PEPDNA_LOCAL_SENDER
 		netif_receive_skb(con->skb);
+#else
+		struct net *net = sock_net(con->server->listener->sk);
+		ip_local_out(net, con->server->listener->sk, con->skb);
+#endif
 		return;
 	}
 #ifdef CONFIG_PEPDNA_RINA

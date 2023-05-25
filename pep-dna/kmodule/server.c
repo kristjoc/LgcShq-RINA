@@ -249,7 +249,13 @@ static unsigned int pepdna_pre_hook(void *priv, struct sk_buff *skb,
                 tcph = tcp_hdr(skb);
                 /* Check for packets with ONLY SYN flag set */
                 if (tcph->syn == 1 && tcph->ack == 0 && tcph->rst == 0) {
-
+#ifdef CONFIG_PEPDNA_LOCAL_SENDER
+			/* When PEP-DNA runs at the sender host, do
+			 * not filter the SYN packets which are sent
+			 * by pepdna_tcp_connect() */
+			if (skb->mark == PEPDNA_SOCK_MARK)
+                                return NF_ACCEPT;
+#endif
                         /* Exclude ssh */
                         if (ntohs(tcph->dest) == SSH_PORT)
                                 return NF_ACCEPT;
@@ -283,8 +289,9 @@ static unsigned int pepdna_pre_hook(void *priv, struct sk_buff *skb,
 
                                 print_syn(syn->daddr, syn->dest);
                                 kfree(syn);
-
+#ifndef CONFIG_PEPDNA_LOCAL_SENDER
                                 consume_skb(skb);
+#endif
                                 return NF_STOLEN;
                         } else {
                                 if (skb->tstamp != con->ts) {

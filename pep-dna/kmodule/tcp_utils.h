@@ -42,7 +42,7 @@
 int pepdna_sock_write(struct socket *, unsigned char *, size_t);
 void pepdna_tcp_nodelayedack(struct socket *);
 void pepdna_ip_transparent(struct socket *);
-void pepdna_set_mark(struct socket *, int);
+void pepdna_set_mark(struct socket *, u32);
 void pepdna_tcp_nonagle(struct socket *);
 void pepdna_set_bufsize(struct socket *);
 uint32_t identify_client(struct socket *);
