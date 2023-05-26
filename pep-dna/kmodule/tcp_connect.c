@@ -77,10 +77,7 @@ void pepdna_tcp_connect(struct work_struct *work)
 #endif
 	/* Mark the socket with 333 MARK. This is only used when PEPDNA is at the
 	 * same host as the sender/receiver or CCN relay */
-#ifdef CONFIG_PEPDNA_LOCAL_SENDER
-	pepdna_set_mark(sock, PEPDNA_SOCK_MARK);
-#endif
-#ifdef CONFIG_PEPDNA_LOCAL_RECEIVER
+#if defined(CONFIG_PEPDNA_LOCAL_SENDER) || defined(CONFIG_PEPDNA_LOCAL_RECEIVER)
 	pepdna_set_mark(sock, PEPDNA_SOCK_MARK);
 #endif
 

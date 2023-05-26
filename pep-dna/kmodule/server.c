@@ -249,8 +249,8 @@ static unsigned int pepdna_pre_hook(void *priv, struct sk_buff *skb,
                 tcph = tcp_hdr(skb);
                 /* Check for packets with ONLY SYN flag set */
                 if (tcph->syn == 1 && tcph->ack == 0 && tcph->rst == 0) {
-#ifdef CONFIG_PEPDNA_LOCAL_SENDER
-			/* When PEP-DNA runs at the sender host, do
+#if defined(CONFIG_PEPDNA_LOCAL_SENDER) || defined(CONFIG_PEPDNA_LOCAL_RECEIVER)
+			/* When PEP-DNA runs at the sender/receiver host, do
 			 * not filter the SYN packets which are sent
 			 * by pepdna_tcp_connect() */
 			if (skb->mark == PEPDNA_SOCK_MARK)
