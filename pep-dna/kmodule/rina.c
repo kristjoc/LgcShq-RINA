@@ -30,6 +30,11 @@
 #include <linux/signal.h>
 #else
 #include <linux/sched/signal.h>
+
+#ifdef CONFIG_PEPDNA_LOCAL_SENDER
+#include <net/ip.h>
+#endif
+
 #endif
 
 
@@ -365,6 +370,7 @@ void nl_r2i_callback(struct nl_msg *nlmsg)
 void nl_i2r_callback(struct nl_msg *nlmsg)
 {
         struct pepdna_con *con = NULL;
+        struct net        *net = NULL;
 
 	con = pepdna_con_find(nlmsg->hash_conn_id);
         if (!con) {
@@ -373,24 +379,24 @@ void nl_i2r_callback(struct nl_msg *nlmsg)
         }
         atomic_set(&con->port_id, nlmsg->port_id);
 
-        /* At this point, RINA flow is allocated and con->flow is set by
-         * flow_is_ready() function. Reinject SYN back to the stack so that
-         * the left TCP connection can be established. There is no need to set
-         * callbacks here for the left socket as pepdna_tcp_accept() will take
-         * care of it.
-         */
-
         if (flow_is_ready(con)) {
                 atomic_set(&con->rflag, 1);
 
 		if (!con->flow->wqs)
 			pepdna_flow_set_iowqs(con->flow);
 
-                netif_receive_skb(con->skb);
-		/* After you call netif_receive_skb, you should not
-		 * free the skb. Your code is no longer the owner of
-		 * that skb since you've given it to the network
-		 * stack. */
+		/* At this point, RINA flow is allocated. Reinject SYN in back
+		 * in the stack so that the left TCP connection can be
+		 * established There is no need to set callbacks here for the
+		 * left socket as pepdna_tcp_accept() will take care of it.
+		 */
+		pep_debug("Reinjecting initial SYN packet");
+#ifndef CONFIG_PEPDNA_LOCAL_SENDER
+		netif_receive_skb(con->skb);
+#else
+		net = sock_net(con->server->listener->sk);
+		ip_local_out(net, con->server->listener->sk, con->skb);
+#endif
 	}
 
         pep_debug("i2r_callback terminated");

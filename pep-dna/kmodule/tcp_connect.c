@@ -40,8 +40,9 @@ void pepdna_tcp_connect(struct work_struct *work)
 	struct pepdna_con *con = container_of(work, struct pepdna_con, tcfa_work);
 	struct sockaddr_in saddr = {0};
 	struct sockaddr_in daddr = {0};
-	struct socket* sock      = NULL;
-	struct sock* sk          = NULL;
+	struct socket *sock      = NULL;
+	struct sock *sk          = NULL;
+	struct net *net          = NULL;
 	const char *str_ip       = NULL;
 	int rc                   = 0;
 
@@ -120,7 +121,7 @@ void pepdna_tcp_connect(struct work_struct *work)
 #ifndef CONFIG_PEPDNA_LOCAL_SENDER
 		netif_receive_skb(con->skb);
 #else
-		struct net *net = sock_net(con->server->listener->sk);
+		net = sock_net(con->server->listener->sk);
 		ip_local_out(net, con->server->listener->sk, con->skb);
 #endif
 		return;
