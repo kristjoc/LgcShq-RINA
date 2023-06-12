@@ -370,7 +370,6 @@ void nl_r2i_callback(struct nl_msg *nlmsg)
 void nl_i2r_callback(struct nl_msg *nlmsg)
 {
         struct pepdna_con *con = NULL;
-        struct net        *net = NULL;
 
 	con = pepdna_con_find(nlmsg->hash_conn_id);
         if (!con) {
@@ -394,7 +393,7 @@ void nl_i2r_callback(struct nl_msg *nlmsg)
 #ifndef CONFIG_PEPDNA_LOCAL_SENDER
 		netif_receive_skb(con->skb);
 #else
-		net = sock_net(con->server->listener->sk);
+		struct net *net = sock_net(con->server->listener->sk);
 		ip_local_out(net, con->server->listener->sk, con->skb);
 #endif
 	}
