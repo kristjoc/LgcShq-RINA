@@ -9,17 +9,18 @@
 #define POLL_READ 0
 #define POLL_WRITE 1
 #define MAX_CONNS 65535
-#define BUFSIZE 11608    /* 1451 * 8 */
+#define BUFSIZE 10255    /* 1465 * 7 */
 
 struct HTTP_RES_HEADER {
-    unsigned long content_length;  //Content-Length: 11683079
-    char content_type[128];        //Content-Type: application/gzip
-    int status_code;               //HTTP/1.1 '200' OK
+        unsigned long content_length;  //Content-Length: 11683079
+        char content_type[128];        //Content-Type: application/gzip
+        int status_code;               //HTTP/1.1 '200' OK
 };
 
 struct HTTP_PUT_HEADER {
-    unsigned long content_length;  /* Content-Length: 11683079 */
-    char filename[32];             /* File-Name: */
+        unsigned long content_length;  /* Content-Length: 11683079 */
+        long int thread_id;				/* User-Agent: thread_id */
+        char filename[32];             /* File-Name: */
 };
 
 double diff_time_ms(struct timespec, struct timespec);
