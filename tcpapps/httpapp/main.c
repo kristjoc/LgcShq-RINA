@@ -391,13 +391,14 @@ static void *cthread_fn_cdf(void *data)
         return NULL;
 }
 
-static int main_client_fn(char *_url, bool _fct_flag)
+static int main_client_fn(char *_url, bool _fct_flag, bool _jfi_flag)
 {
         char file_name[32] = {0};
         int rc = 0;
         pthread_t thread[MAX_CONNS];
         int asock[MAX_CONNS];
         time_t t;
+	useconds_t usec;
 
         if (debug)
                 printf("main client started ... \n");
@@ -407,6 +408,12 @@ static int main_client_fn(char *_url, bool _fct_flag)
 
                 return 0;
         }
+
+	if (_jfi_flag)
+		usec = 10000;
+	else
+		usec = 1000;
+
 
         // Pasrse URL to get the IP, Port and Filename
         parse_url(_url, host, &port, file_name);
@@ -431,15 +438,18 @@ static int main_client_fn(char *_url, bool _fct_flag)
 
         // Spawn all client threads
         for (int id = 0; id < count; ++id) {
-                rc = pthread_create(&thread[id], NULL, cthread_fn_cdf, (void *)&asock[id]);
+                rc = pthread_create(&thread[id],
+				    NULL,
+				    cthread_fn_cdf,
+				    (void *)&asock[id]);
                 if (rc < 0) {
                         /* perror("pthread_create"); */
                         close(asock[id]);
                 }
-                usleep(1000);
+                usleep(usec);
         }
 
-        // Finally, Join threads and exit
+        // Finally, join threads and exit
         for (int id = 0; id < count; ++id)
                 pthread_join(thread[id], NULL);
 
@@ -639,7 +649,8 @@ static void main_server_fn(int _port)
  ******************************************************************************/
 int main(int argc, char *argv[])
 {
-        bool cflag = false, sflag = false, icn_flag = false, fct_flag = false;
+        bool cflag = false, sflag = false, icn_flag = false, fct_flag = false,
+		jfi_flag = false;
         struct sigaction sa;
         int opt, rc;
 
@@ -662,7 +673,7 @@ int main(int argc, char *argv[])
                 exit(EXIT_FAILURE);
         }
 
-        while ((opt = getopt(argc, argv, "i:usc:dfp:n:v")) != -1) {
+        while ((opt = getopt(argc, argv, "i:usc:dfjp:n:v")) != -1) {
                 switch (opt) {
                 case 's':
                         if (cflag) {
@@ -725,6 +736,11 @@ int main(int argc, char *argv[])
                         /* if fct_flag not set, it will be the cdf experiment */
                         fct_flag = 1;
                         break;
+                case 'j':
+                        /* set jfi_flag for Jain's fairness experiment */
+                        jfi_flag = 1;
+                        break;
+
                 case 'n':
                         if (strchr(optarg, '-') != NULL) {
                                 fprintf(stderr, "[-n count] -- wrong option\n");
@@ -744,6 +760,7 @@ int main(int argc, char *argv[])
                                 "[-u] upload\n"
                                 "[-d] download\n"
                                 "[-f] fct / cdf of fct\n"
+                                "[-j] jfi scenario\n"
                                 "[-v] with-debug\n"
                                 "[-n count]\n", argv[0]);
 
@@ -773,7 +790,7 @@ int main(int argc, char *argv[])
                                 fprintf(stderr, "/var/www/web/ dir does not exist!\n");
                         exit(EXIT_FAILURE);
                 }
-                main_client_fn(url, fct_flag);
+                main_client_fn(url, fct_flag, jfi_flag);
         } else if (sflag) {
                 // Server case
                 daemonize();
