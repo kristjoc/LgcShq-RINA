@@ -219,7 +219,7 @@ int Nread(int fd, unsigned char *buf, size_t count)
         int rc = 0;
 
         while (nleft > 0) {
-                rc = poll_fd(fd, POLL_READ, 1000);
+                rc = poll_fd(fd, POLL_READ, POLL_TIMEOUT);
                 if (rc <= 0) {
                         /* perror("poll_fd(READ)"); */
                         return NET_SOFTERROR;
@@ -257,7 +257,7 @@ int Nwrite(int fd, unsigned char *buf, size_t count)
         int rc = 0;
 
         while (nleft > 0) {
-                rc = poll_fd(fd, POLL_WRITE, 1000);
+                rc = poll_fd(fd, POLL_WRITE, POLL_TIMEOUT);
                 if (rc <= 0) {
                         /* perror("poll_fd(WRITE)"); */
                         return NET_SOFTERROR;

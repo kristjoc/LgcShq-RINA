@@ -8,18 +8,19 @@
 #define NET_HARDERROR -2
 #define POLL_READ 0
 #define POLL_WRITE 1
+#define POLL_TIMEOUT 10000
 #define MAX_CONNS 65535
 #define BUFSIZE 10255    /* 1465 * 7 */
 
 struct HTTP_RES_HEADER {
-        unsigned long content_length;  //Content-Length: 11683079
+	unsigned long content_length;  //Content-Length: 11683079
         char content_type[128];        //Content-Type: application/gzip
         int status_code;               //HTTP/1.1 '200' OK
 };
 
 struct HTTP_PUT_HEADER {
         unsigned long content_length;  /* Content-Length: 11683079 */
-        long int thread_id;				/* User-Agent: thread_id */
+        long int thread_id;            /* User-Agent: thread_id */
         char filename[32];             /* File-Name: */
 };
 

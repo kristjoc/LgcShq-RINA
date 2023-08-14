@@ -89,7 +89,7 @@ static int main_ccn_client(char *_url)
                 exit(EXIT_FAILURE);
         }
 
-        rc = poll_fd(sock, POLL_READ, 3000);
+        rc = poll_fd(sock, POLL_READ, POLL_TIMEOUT);
         if (rc <= 0) {
                 fprintf(stderr, "ERROR during poll()\n");
                 close(sock);
@@ -185,7 +185,7 @@ static int client_fct(char *_url)
                 exit(EXIT_FAILURE);
         }
 
-        rc = poll_fd(sock, POLL_READ, 1000);
+        rc = poll_fd(sock, POLL_READ, POLL_TIMEOUT);
         if (rc <= 0) {
                 fprintf(stderr, "ERROR during poll()\n");
                 close(sock);
@@ -345,7 +345,7 @@ static void *cthread_fn_cdf(void *data)
                 exit(EXIT_FAILURE);
         }
 
-        rc = poll_fd(asock, POLL_READ, 3000);
+        rc = poll_fd(asock, POLL_READ, POLL_TIMEOUT);
         if (rc <= 0) {
                 /* fprintf(stderr, "ERROR during poll()\n"); */
                 close(asock);
@@ -515,7 +515,7 @@ static void *sthread_fn(void *data)
 
         set_blocking(sock, false);
 
-        rc = poll_fd(sock, POLL_READ, 3000);
+        rc = poll_fd(sock, POLL_READ, POLL_TIMEOUT);
         if (rc <= 0) {
                 /* perror("poll_fd(READ)"); */
                 close(sock);
@@ -553,7 +553,7 @@ static void *sthread_fn(void *data)
         }
 
         if (dflag) {
-                rc = poll_fd(sock, POLL_READ, 3000);
+                rc = poll_fd(sock, POLL_READ, POLL_TIMEOUT);
                 if (rc <= 0) {
                         /* perror("poll_fd(READ)"); */
                         close(sock);
