@@ -261,7 +261,7 @@ static int lgcshq_rcvr_flow_control(struct dtcp_ps * ps, const struct pci * pci)
         }
 
         /* Update cwnd once every observation window */
-        if (data->samples_received >= data->obs_window_size * data->ecn_bits) {
+        if (data->samples_received >= data->obs_window_size) {
                 LOG_DBG("Received %u bits, with %u marked bits in this window",
                         data->samples_received, data->ecn_received);
                 lgc_update_rate(ps);

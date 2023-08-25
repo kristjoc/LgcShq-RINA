@@ -369,8 +369,7 @@ static int lgcshq_rmt_ps_set_policy_set_param(struct ps_base *bps,
                 ret = kstrtouint(value, 10, &uival);
                 if (!ret) {
                         data->bandwidth = uival * 125U; // bytes / ms
-                        LOG_INFO("Maximum link capacity is %u bytes per msec",
-                                 uival);
+                        LOG_INFO("Maximum link capacity is %u Mbps", uival);
                 }
         }
         if (strcmp(name, "ecn_bits") == 0) {
