@@ -1,7 +1,7 @@
 /*
  *  pep-dna/pepdna/kmodule/core.c: PEP-DNA core module
  *
- *  Copyright (C) 2020  Kristjon Ciko <kristjoc@ifi.uio.no>
+ *  Copyright (C) 2023  Kristjon Ciko <kristjoc@ifi.uio.no>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -69,15 +69,21 @@ static int __init pepdna_init(void)
 
 	rc = pepdna_register_sysctl();
 	if (rc) {
-		pr_err("Register sysctl failed with err. %d", rc);
-		return rc;
+		pep_err("Unable to register sysctl");
+		goto out;
 	}
 
 	rc = pepdna_server_start();
-	if (rc < 0)
-		pr_err("PEP-DNA LKM loaded with errors");
+	if (rc < 0) {
+		pepdna_unregister_sysctl();
+		goto out;
+	}
 
-	pep_info("PEP-DNA LKM loaded succesfully in %s mode", get_mode_name());
+	pep_info("Started pepdna in %s mode", get_mode_name());
+	return 0;
+
+out:
+	pep_err("Unable to load pepdna in %s mode", get_mode_name());
 	return rc;
 }
 
@@ -97,4 +103,4 @@ module_exit(pepdna_exit);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Kr1stj0n C1k0");
 MODULE_VERSION(PEPDNA_MOD_VER);
-MODULE_DESCRIPTION("PEP-DNA kernel module");
+MODULE_DESCRIPTION(PEPDNA_DESCRIPTION);

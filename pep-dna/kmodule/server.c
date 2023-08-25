@@ -530,7 +530,7 @@ int pepdna_server_start(void)
         struct pepdna_server *srv = kzalloc(sizeof(struct pepdna_server),
                                             GFP_ATOMIC);
         if (!srv) {
-                pep_err("Couldn't allocate memory for pepdna_server");
+                pep_err("Couldn't allocate memory for pepdna server");
                 return -ENOMEM;
         }
 
@@ -579,7 +579,7 @@ int pepdna_server_start(void)
                 break;
 #endif
         default:
-                pep_err("PEP-DNA mode undefined");
+                pep_err("pepdna mode undefined");
                 return -EINVAL;
         }
 

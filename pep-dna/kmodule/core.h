@@ -1,7 +1,7 @@
 /*
  *  pep-dna/pepdna/kmodule/core.h: PEP-DNA header with global declarations
  *
- *  Copyright (C) 2020  Kristjon Ciko <kristjoc@ifi.uio.no>
+ *  Copyright (C) 2023  Kristjon Ciko <kristjoc@ifi.uio.no>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,7 +22,9 @@
 
 #include <linux/netdevice.h>
 
-#define PEPDNA_MOD_VER "0.3.0"
+#define PEPDNA_MOD_VER     "0.4.0"
+#define PEPDNA_DESCRIPTION "PEP-DNA: a Performance Enhancing Proxy for "\
+			    "Deploying Network Architectures"
 
 extern int sysctl_pepdna_sock_rmem[3] __read_mostly;
 extern int sysctl_pepdna_sock_wmem[3] __read_mostly;
