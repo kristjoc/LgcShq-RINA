@@ -515,7 +515,7 @@ static void init_pepdna_server(struct pepdna_server *srv)
 	srv->r2l_wq    = NULL;
 
 	spin_lock_init(&srv->lock);
-	srv->conns = ATOMIC_INIT(0);
+	atomic_set(&srv->conns, 0);
 	hash_init(srv->htable);
 }
 
@@ -540,38 +540,47 @@ int pepdna_server_start(void)
 		rc = pepdna_i2i_start(srv);
 		if (rc < 0)
 			goto err_start;
+		break;
 #ifdef CONFIG_PEPDNA_RINA
         case TCP2RINA:
                 rc = pepdna_i2r_start(srv);
                 if (rc < 0)
 			goto err_start;
+		break;
         case RINA2TCP:
                 rc = pepdna_r2i_start(srv);
                 if (rc < 0)
 			goto err_start;
+		break;
         case RINA2RINA:
                 rc = pepdna_r2r_start(srv);
                 if (rc < 0)
 			goto err_start;
+		break;
 #endif
 #ifdef CONFIG_PEPDNA_CCN
         case TCP2CCN:
                 rc = pepdna_i2c_start(srv);
                 if (rc < 0)
 			goto err_start;
+		break;
         case CCN2TCP:
                 rc = pepdna_c2i_start(srv);
                 if (rc < 0)
 			goto err_start;
+		break;
 	case CCN2CCN:
                 rc = pepdna_c2c_start(srv);
                 if (rc < 0)
 			goto err_start;
+		break;
 #endif
         default:
                 pep_err("pepdna mode undefined");
 			goto err_start;
+		break;
         }
+	return 0;
 
 err_start:
 	kfree(srv);
