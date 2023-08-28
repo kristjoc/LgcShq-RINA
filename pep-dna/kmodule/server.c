@@ -514,7 +514,7 @@ static void init_pepdna_server(struct pepdna_server *srv)
 	srv->l2r_wq    = NULL;
 	srv->r2l_wq    = NULL;
 
-	spin_lock_init(&srv->lock);
+	rwlock_init(&srv->lock);
 	atomic_set(&srv->conns, 0);
 	hash_init(srv->htable);
 }
@@ -603,19 +603,19 @@ void pepdna_server_stop(void)
                                         ARRAY_SIZE(pepdna_nf_ops));
 
         /* 2. Check for connections which are still alive and destroy them */
-	spin_lock_bh(&pepdna_srv->lock);
+	write_lock_bh(&pepdna_srv->lock);
 	if (atomic_read(&pepdna_srv->conns)) {
                 hlist_for_each_entry_safe(con, n, pepdna_srv->htable, hlist) {
                         if (con) {
                                 pep_err("Hmmm, %d connections still alive",
                                         atomic_read(&pepdna_srv->conns));
-				spin_unlock_bh(&pepdna_srv->lock);
+				write_unlock_bh(&pepdna_srv->lock);
                                 pepdna_con_close(con);
-				spin_lock_bh(&pepdna_srv->lock);
+				write_lock_bh(&pepdna_srv->lock);
                         }
                 }
         }
-	spin_unlock_bh(&pepdna_srv->lock);
+	write_unlock_bh(&pepdna_srv->lock);
 
         /* 3. Release main listening socket and Netlink socket */
         pepdna_netlink_stop();

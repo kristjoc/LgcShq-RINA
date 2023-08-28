@@ -67,7 +67,7 @@ struct pepdna_server {
 	struct socket *listener;
 	int port;
 	struct hlist_head htable[PEPDNA_HASH_BITS];
-	spinlock_t lock;
+	rwlock_t lock;
 	atomic_t conns;
 };
 
