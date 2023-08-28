@@ -140,8 +140,8 @@ struct pepdna_con *pepdna_con_alloc(struct syn_tuple *syn, struct sk_buff *skb,
         atomic_inc(&con->server->conns);
         con->lsock  = NULL;
         con->rsock  = NULL;
-	con->lflag = ATOMIC_INIT(0);
-	con->rlflag = ATOMIC_INIT(0);
+	atomic_set(&con->lflag, 0);
+	atomic_set(&con->rflag, 0);
 
         con->tuple.saddr  = syn->saddr;
         con->tuple.source = syn->source;
@@ -154,7 +154,7 @@ struct pepdna_con *pepdna_con_alloc(struct syn_tuple *syn, struct sk_buff *skb,
 	write_unlock_bh(&con->server->lock);
 
 	/* Start tcp_connect() / flow_allocate() work */
-        queue_work(con->server->tcfa_wq, &con->tcfa_work)
+        queue_work(con->server->tcfa_wq, &con->tcfa_work);
 
         return con;
 }
