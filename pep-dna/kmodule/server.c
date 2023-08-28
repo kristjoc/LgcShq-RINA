@@ -51,7 +51,7 @@ struct pepdna_server *pepdna_srv = NULL;
 /* Static functions */
 static unsigned int pepdna_pre_hook(void *, struct sk_buff *,
                                     const struct nf_hook_state *);
-static int init_pepdna_server(struct pepdna_server *);
+static void init_pepdna_server(struct pepdna_server *);
 static int pepdna_i2i_start(struct pepdna_server *);
 #ifdef CONFIG_PEPDNA_RINA
 static int pepdna_r2r_start(struct pepdna_server *);
@@ -502,22 +502,21 @@ static int pepdna_c2c_start(struct pepdna_server *srv)
 }
 #endif
 
-static int init_pepdna_server(struct pepdna_server *srv)
+static void init_pepdna_server(struct pepdna_server *srv)
 {
-        pepdna_srv = srv;
-        srv->mode  = mode;
+	pepdna_srv = srv;
+	srv->mode  = mode;
+	srv->port = port;
 
-        srv->listener  = NULL;
-        srv->accept_wq = NULL;
-        srv->tcfa_wq   = NULL;
-        srv->l2r_wq    = NULL;
-        srv->r2l_wq    = NULL;
+	srv->listener  = NULL;
+	srv->accept_wq = NULL;
+	srv->tcfa_wq   = NULL;
+	srv->l2r_wq    = NULL;
+	srv->r2l_wq    = NULL;
 
-        srv->idr_in_use = 0;
-        srv->port = port;
-        hash_init(srv->htable);
-
-        return 0;
+	spin_lock_init(&srv->lock);
+	srv->conns = ATOMIC_INIT(0);
+	hash_init(srv->htable);
 }
 
 /*
@@ -526,63 +525,56 @@ static int init_pepdna_server(struct pepdna_server *srv)
  * ------------------------------------------------------------------------- */
 int pepdna_server_start(void)
 {
-        int rc = 0;
-        struct pepdna_server *srv = kzalloc(sizeof(struct pepdna_server),
+	int rc = 0;
+	struct pepdna_server *srv = kzalloc(sizeof(struct pepdna_server),
                                             GFP_ATOMIC);
-        if (!srv) {
-                pep_err("Couldn't allocate memory for pepdna server");
-                return -ENOMEM;
-        }
+	if (!srv) {
+		pep_err("Couldn't allocate memory for pepdna server");
+		return -ENOMEM;
+	}
 
-        rc = init_pepdna_server(srv);
-        if (rc)
-                return rc;
+        init_pepdna_server(srv);
 
         switch (srv->mode) {
         case TCP2TCP:
-                rc = pepdna_i2i_start(srv);
-                if (rc < 0)
-                        return rc;
-                break;
+		rc = pepdna_i2i_start(srv);
+		if (rc < 0)
+			goto err_start;
 #ifdef CONFIG_PEPDNA_RINA
         case TCP2RINA:
                 rc = pepdna_i2r_start(srv);
                 if (rc < 0)
-                        return rc;
-                break;
+			goto err_start;
         case RINA2TCP:
                 rc = pepdna_r2i_start(srv);
                 if (rc < 0)
-                        return rc;
-                break;
+			goto err_start;
         case RINA2RINA:
                 rc = pepdna_r2r_start(srv);
                 if (rc < 0)
-                        return rc;
-                break;
+			goto err_start;
 #endif
 #ifdef CONFIG_PEPDNA_CCN
         case TCP2CCN:
                 rc = pepdna_i2c_start(srv);
                 if (rc < 0)
-                        return rc;
-                break;
+			goto err_start;
         case CCN2TCP:
                 rc = pepdna_c2i_start(srv);
                 if (rc < 0)
-                        return rc;
-                break;
-		case CCN2CCN:
+			goto err_start;
+	case CCN2CCN:
                 rc = pepdna_c2c_start(srv);
                 if (rc < 0)
-                        return rc;
-                break;
+			goto err_start;
 #endif
         default:
                 pep_err("pepdna mode undefined");
-                return -EINVAL;
+			goto err_start;
         }
 
+err_start:
+	kfree(srv);
         return rc;
 }
 
@@ -602,20 +594,24 @@ void pepdna_server_stop(void)
                                         ARRAY_SIZE(pepdna_nf_ops));
 
         /* 2. Check for connections which are still alive and destroy them */
-        if (pepdna_srv->idr_in_use > 0) {
+	spin_lock_bh(&pepdna_srv->lock);
+	if (atomic_read(&pepdna_srv->conns)) {
                 hlist_for_each_entry_safe(con, n, pepdna_srv->htable, hlist) {
                         if (con) {
-                                pep_err("Hmmm, %d con. still alive",
-                                        pepdna_srv->idr_in_use);
+                                pep_err("Hmmm, %d connections still alive",
+                                        atomic_read(&pepdna_srv->conns));
+				spin_unlock_bh(&pepdna_srv->lock);
                                 pepdna_con_close(con);
+				spin_lock_bh(&pepdna_srv->lock);
                         }
                 }
         }
+	spin_unlock_bh(&pepdna_srv->lock);
 
         /* 3. Release main listening socket and Netlink socket */
         pepdna_netlink_stop();
-        pepdna_srv->listener = NULL;
         pepdna_tcp_listen_stop(sock, &pepdna_srv->accept_work);
+        pepdna_srv->listener = NULL;
 
         /* 4. Flush and Destroy all works */
         pepdna_work_stop(pepdna_srv);
@@ -624,5 +620,5 @@ void pepdna_server_stop(void)
         kfree(pepdna_srv);
         pepdna_srv = NULL;
 
-        pep_info("PEP-DNA kernel module unloaded");
+        pep_info("pepdna unloaded");
 }

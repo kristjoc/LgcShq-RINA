@@ -1,7 +1,7 @@
 /*
- *  pep-dna/pepdna/kmodule/sysctl.c: sysctl interface to PEPDNA subsystem
+ *  pep-dna/pepdna/kmodule/sysctl.c: sysctl interface to PEP-DNA subsystem
  *
- *  Copyright (C) 2020  Kristjon Ciko <kristjoc@ifi.uio.no>
+ *  Copyright (C) 2023  Kristjon Ciko <kristjoc@ifi.uio.no>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -58,7 +58,7 @@ int pepdna_register_sysctl(void)
  * Unregister net_sysctl
  * This function is called by pepdna_exit() @'core.c'
  * ---------------------------------------------------------------------------*/
-void pepdna_unregister_sysctl(void)
+void pepdna_unregister_sysctl()
 {
 	unregister_net_sysctl_table(pepdna_ctl_hdr);
 }

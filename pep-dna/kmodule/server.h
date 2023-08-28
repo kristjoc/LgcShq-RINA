@@ -54,19 +54,21 @@ enum server_mode {
  * @listener:    pepdna listener socket
  * @port:        pepdna TCP listener port
  * @htable:      Hash table for connections
- * @idr_in_use:  amount of allocated identifier entry
+ * @lock:        protect the Hash table
+ * @conns:       counter for active connections
  */
 struct pepdna_server {
-        enum server_mode mode;
-        struct workqueue_struct *l2r_wq;
-        struct workqueue_struct *r2l_wq;
-        struct workqueue_struct *tcfa_wq;
-        struct workqueue_struct *accept_wq;
-        struct work_struct accept_work;
-        struct socket *listener;
-        int port;
-        struct hlist_head htable[PEPDNA_HASH_BITS];
-        int idr_in_use;
+	enum server_mode mode;
+	struct workqueue_struct *l2r_wq;
+	struct workqueue_struct *r2l_wq;
+	struct workqueue_struct *tcfa_wq;
+	struct workqueue_struct *accept_wq;
+	struct work_struct accept_work;
+	struct socket *listener;
+	int port;
+	struct hlist_head htable[PEPDNA_HASH_BITS];
+	spinlock_t lock;
+	atomic_t conns;
 };
 
 void pepdna_l2r_conn_data_ready(struct sock *);

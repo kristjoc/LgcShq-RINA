@@ -66,8 +66,8 @@ struct syn_tuple {
  * @port_id:   port id of the flow
  * @lsock:     left TCP socket
  * @rsock:     right TCP socket
- * @lflag:     indicates left connection state
- * @rflag:     indicates left connection state
+ * @lflag:     left connection state
+ * @rflag:     right connection state
  * @hash_conn_id: 32-bit hash connection identifier
  * @ts:        timestamp of the first incoming SYN
  * @tuple:     connection tuple

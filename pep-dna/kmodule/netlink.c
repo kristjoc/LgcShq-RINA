@@ -1,7 +1,7 @@
 /*
  *  pep-dna/pepdna/kmodule/netlink.c: PEP-DNA Netlink code
  *
- *  Copyright (C) 2020  Kristjon Ciko <kristjoc@ifi.uio.no>
+ *  Copyright (C) 2023  Kristjon Ciko <kristjoc@ifi.uio.no>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by

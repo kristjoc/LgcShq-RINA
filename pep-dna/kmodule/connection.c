@@ -85,48 +85,49 @@ struct pepdna_con *pepdna_con_alloc(struct syn_tuple *syn, struct sk_buff *skb,
         con->skb = (skb) ? skb_copy(skb, GFP_ATOMIC) : NULL;
 
         switch (pepdna_srv->mode) {
-                case TCP2TCP:
-                        INIT_WORK(&con->l2r_work, pepdna_con_li2ri_work);
-                        INIT_WORK(&con->r2l_work, pepdna_con_ri2li_work);
-                        INIT_WORK(&con->tcfa_work, pepdna_tcp_connect);
-                        break;
+	case TCP2TCP:
+		INIT_WORK(&con->l2r_work, pepdna_con_li2ri_work);
+		INIT_WORK(&con->r2l_work, pepdna_con_ri2li_work);
+		INIT_WORK(&con->tcfa_work, pepdna_tcp_connect);
+		break;
 #ifdef CONFIG_PEPDNA_RINA
-                case TCP2RINA:
-                        INIT_WORK(&con->l2r_work, pepdna_con_i2r_work);
-                        INIT_WORK(&con->r2l_work, pepdna_con_r2i_work);
-                        INIT_WORK(&con->tcfa_work, pepdna_flow_alloc);
-                        break;
-                case RINA2TCP:
-                        INIT_WORK(&con->l2r_work, pepdna_con_i2r_work);
-                        INIT_WORK(&con->r2l_work, pepdna_con_r2i_work);
-                        INIT_WORK(&con->tcfa_work, pepdna_tcp_connect);
-                        break;
-                case RINA2RINA:
-                        /* INIT_WORK(&con->l2r_work, pepdna_con_rl2rr_work); */
-                        /* INIT_WORK(&con->r2l_work, pepdna_con_rr2rl_work); */
-                        /* INIT_WORK(&con->tcfa_work, pepdna_flow_alloc); */
-                        break;
+	case TCP2RINA:
+		INIT_WORK(&con->l2r_work, pepdna_con_i2r_work);
+		INIT_WORK(&con->r2l_work, pepdna_con_r2i_work);
+		INIT_WORK(&con->tcfa_work, pepdna_flow_alloc);
+		break;
+	case RINA2TCP:
+		INIT_WORK(&con->l2r_work, pepdna_con_i2r_work);
+		INIT_WORK(&con->r2l_work, pepdna_con_r2i_work);
+		INIT_WORK(&con->tcfa_work, pepdna_tcp_connect);
+                break;
+	case RINA2RINA:
+		/* INIT_WORK(&con->l2r_work, pepdna_con_rl2rr_work); */
+		/* INIT_WORK(&con->r2l_work, pepdna_con_rr2rl_work); */
+		/* INIT_WORK(&con->tcfa_work, pepdna_flow_alloc); */
+		break;
 #endif
 #ifdef CONFIG_PEPDNA_CCN
-                case TCP2CCN:
-                        INIT_WORK(&con->l2r_work, pepdna_con_i2c_work);
-                        INIT_WORK(&con->r2l_work, pepdna_con_c2i_work);
-                        INIT_WORK(&con->tcfa_work, pepdna_udp_open);
-                        break;
-                case CCN2TCP:
-                        /* TODO: Not supported yet! */
-                        /* INIT_WORK(&con->l2r_work, pepdna_con_c2i_work); */
-                        /* INIT_WORK(&con->r2l_work, pepdna_con_i2c_work); */
-                        break;
-                case CCN2CCN:
-                        /* TODO: Not supported yet*/
-                        /* INIT_WORK(&con->l2r_work, pepdna_con_lc2rc_work); */
-                        /* INIT_WORK(&con->r2l_work, pepdna_con_rc2lc_work); */
-                        break;
+	case TCP2CCN:
+		INIT_WORK(&con->l2r_work, pepdna_con_i2c_work);
+		INIT_WORK(&con->r2l_work, pepdna_con_c2i_work);
+		INIT_WORK(&con->tcfa_work, pepdna_udp_open);
+		break;
+	case CCN2TCP:
+		/* TODO: Not supported yet! */
+		/* INIT_WORK(&con->l2r_work, pepdna_con_c2i_work); */
+		/* INIT_WORK(&con->r2l_work, pepdna_con_i2c_work); */
+		break;
+	case CCN2CCN:
+		/* TODO: Not supported yet*/
+		/* INIT_WORK(&con->l2r_work, pepdna_con_lc2rc_work); */
+		/* INIT_WORK(&con->r2l_work, pepdna_con_rc2lc_work); */
+		break;
 #endif
-                default:
-                        pep_err("PEP-DNA mode undefined");
-                        return NULL;
+	default:
+		pep_err("PEP-DNA mode undefined");
+		kfree(con);
+		return NULL;
         }
 
         con->hash_conn_id = hash_id;
@@ -136,9 +137,11 @@ struct pepdna_con *pepdna_con_alloc(struct syn_tuple *syn, struct sk_buff *skb,
         con->flow = NULL;
 #endif
         con->server = pepdna_srv;
-        con->server->idr_in_use++;
+        atomic_inc(&con->server->conns);
         con->lsock  = NULL;
         con->rsock  = NULL;
+	con->lflag = ATOMIC_INIT(0);
+	con->rlflag = ATOMIC_INIT(0);
 
         con->tuple.saddr  = syn->saddr;
         con->tuple.source = syn->source;
@@ -146,12 +149,12 @@ struct pepdna_con *pepdna_con_alloc(struct syn_tuple *syn, struct sk_buff *skb,
         con->tuple.dest   = syn->dest;
 
         INIT_HLIST_NODE(&con->hlist);
+	write_lock_bh(&con->server->lock);
         hash_add(pepdna_srv->htable, &con->hlist, con->hash_conn_id);
+	write_unlock_bh(&con->server->lock);
 
-        if (!queue_work(con->server->tcfa_wq, &con->tcfa_work)) {
-                pep_err("tcfa_work already on a queue_work");
-                pepdna_con_put(con);
-        }
+	/* Start tcp_connect() / flow_allocate() work */
+        queue_work(con->server->tcfa_wq, &con->tcfa_work)
 
         return con;
 }
@@ -189,6 +192,10 @@ static void pepdna_con_kref_release(struct kref *kref)
         struct pepdna_con *con = container_of(kref, struct pepdna_con, kref);
 
         pep_debug("Cleaning up con. with hash_id %u", con->hash_conn_id);
+
+	write_lock(&con->server->lock);
+	hlist_del(&con->hlist);
+
         if (con->lsock) {
                 sock_release(con->lsock);
                 con->lsock = NULL;
@@ -198,11 +205,9 @@ static void pepdna_con_kref_release(struct kref *kref)
                 con->rsock = NULL;
         }
 
-        rcu_read_lock();
-        hlist_del(&con->hlist);
         kfree(con); con = NULL;
-        pepdna_srv->idr_in_use--;
-        rcu_read_unlock();
+        atomic_dec(&pepdna_srv->conns);
+        write_unlock_bh(&pepdna_srv->lock);
 }
 
 /*

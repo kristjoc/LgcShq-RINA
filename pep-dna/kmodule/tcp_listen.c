@@ -197,7 +197,7 @@ void pepdna_tcp_listen_stop(struct socket *sock, struct work_struct *acceptor)
         if (pepdna_srv->mode == RINA2TCP || pepdna_srv->mode == RINA2RINA)
                 return;
 
-        pep_debug("Stopping PEPDNA main sock listener");
+        pep_debug("Stopping pepdna main sock listener");
         sk = sock->sk;
 
         /* serialize with and prevent further callbacks */
