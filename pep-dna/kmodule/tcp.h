@@ -27,13 +27,15 @@
 
 /* tcp_listen.c */
 int pepdna_tcp_listen_init(struct pepdna_server *);
-void pepdna_tcp_listen_stop(struct socket *, struct work_struct *);
 void pepdna_acceptor_work(struct work_struct *work);
+void pepdna_tcp_listen_stop(struct socket *, struct work_struct *);
 
 /* tcp_connect.c */
 void pepdna_tcp_connect(struct work_struct *);
 
 /* tcp.c */
 int pepdna_con_i2i_fwd(struct socket *, struct socket *);
+void pepdna_con_r2l_fwd(struct work_struct *);
+void pepdna_con_l2r_fwd(struct work_struct *);
 
 #endif /* _PEPDNA_TCP_H */

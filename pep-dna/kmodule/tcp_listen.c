@@ -102,13 +102,12 @@ int pepdna_tcp_listen_init(struct pepdna_server *srv)
                 pep_err("kernel_listen %d ", rc);
                 goto err;
         }
-        pep_debug("PEPDNA is listening for incoming TCP connections");
-
+        pep_debug("pepdna is listening for incoming TCP connections");
         return 0;
 err:
-        if (sock)
-                sock_release(sock);
+        sock_release(sock);
         sock = NULL;
+
         return -EINVAL;
 }
 
@@ -118,34 +117,32 @@ err:
  * ------------------------------------------------------------------------- */
 static int pepdna_tcp_accept(struct pepdna_server *srv)
 {
-        struct socket *sock    = srv->listener;
+        struct socket *lsock   = srv->listener;
         struct pepdna_con *con = NULL;
-        struct socket *lsock   = NULL;
+        struct socket *asock   = NULL;
         struct sock *lsk       = NULL;
         struct sock *rsk       = NULL;
         uint32_t hash_id       = 0;
         int rc                 = 0;
 
         while (1) {
-                rc = kernel_accept(sock, &lsock, O_NONBLOCK);
+                rc = kernel_accept(lsock, &asock, O_NONBLOCK);
                 if (rc < 0)
                         return rc;
 
-                hash_id = identify_client(lsock);
+                hash_id = identify_client(asock);
                 con     = pepdna_con_find(hash_id);
                 if (!con) {
                         pep_err("con not found in Hash Table");
-                        sock_release(lsock);
-                        lsock = NULL;
-                        rc = -1;
-                        break;
+                        sock_release(asock);
+                        asock = NULL;
+                        return -1;
                 }
-                pep_debug("PEPDNA accepted new connection with hash_id %u",
-			  hash_id);
+                pep_debug("pepdna accepted new conn. with hash_id %u", hash_id);
 
                 /* Register callbacks for left sock and activate right sock */
-                con->lsock = lsock;
-                lsk        = lsock->sk;
+                con->lsock = asock;
+                lsk        = asock->sk;
 
                 write_lock_bh(&lsk->sk_callback_lock);
                 lsk->sk_data_ready = pepdna_l2r_conn_data_ready;
@@ -156,6 +153,7 @@ static int pepdna_tcp_accept(struct pepdna_server *srv)
 
 		if (srv->mode == TCP2RINA) {
                         /* Queue RINA-to-INTERNET work right now */
+			pepdna_con_get(con);
                         if (!queue_work(srv->r2l_wq, &con->r2l_work)) {
                                 pep_err("r2i_work already in queue");
                                 pepdna_con_put(con);
@@ -193,7 +191,8 @@ void pepdna_tcp_listen_stop(struct socket *sock, struct work_struct *acceptor)
         struct sock *sk;
 
         if (!sock)
-                return;
+        	return;
+
         if (pepdna_srv->mode == RINA2TCP || pepdna_srv->mode == RINA2RINA)
                 return;
 

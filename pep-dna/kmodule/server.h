@@ -1,7 +1,7 @@
 /*
- *  pep-dna/pepdna/kmodule/server.h: PEP-DNA server infrastructure header
+ *  pep-dna/kmodule/server.h: PEP-DNA server infrastructure header
  *
- *  Copyright (C) 2020  Kristjon Ciko <kristjoc@ifi.uio.no>
+ *  Copyright (C) 2023  Kristjon Ciko <kristjoc@ifi.uio.no>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 
 #include <linux/workqueue.h>    /* work_struct, workqueue_struct, htable*/
 
-#define MODULE_NAME      "PEP-DNA"
+#define MODULE_NAME      "pepdna"
 #define NF_PEPDNA_PRI    -500
 #define PEPDNA_HASH_BITS 9
 #define MAX_CONNS        65535
@@ -54,27 +54,23 @@ enum server_mode {
  * @listener:    pepdna listener socket
  * @port:        pepdna TCP listener port
  * @htable:      Hash table for connections
- * @lock:        protect the Hash table
- * @conns:       counter for active connections
+ * @conns:	 counter for active connections
  */
 struct pepdna_server {
-	enum server_mode mode;
-	struct workqueue_struct *l2r_wq;
-	struct workqueue_struct *r2l_wq;
-	struct workqueue_struct *tcfa_wq;
-	struct workqueue_struct *accept_wq;
-	struct work_struct accept_work;
-	struct socket *listener;
-	int port;
-	struct hlist_head htable[PEPDNA_HASH_BITS];
-	rwlock_t lock;
+        enum server_mode mode;
+        struct workqueue_struct *l2r_wq;
+        struct workqueue_struct *r2l_wq;
+        struct workqueue_struct *tcfa_wq;
+        struct workqueue_struct *accept_wq;
+        struct work_struct accept_work;
+        struct socket *listener;
+        int port;
+        struct hlist_head htable[PEPDNA_HASH_BITS];
 	atomic_t conns;
 };
 
 void pepdna_l2r_conn_data_ready(struct sock *);
 void pepdna_r2l_conn_data_ready(struct sock *);
-void pepdna_con_li2ri_work(struct work_struct *work);
-void pepdna_con_ri2li_work(struct work_struct *work);
 int  pepdna_server_start(void);
 void pepdna_server_stop(void);
 int  pepdna_work_init(struct pepdna_server *);

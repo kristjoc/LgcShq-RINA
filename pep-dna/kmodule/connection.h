@@ -1,20 +1,20 @@
 /*
- *  pep-dna/pepdna/kmodule/connection.h: PEP-DNA connection instance header
+ *	pep-dna/kmodule/connection.h: PEP-DNA connection instance header
  *
- *  Copyright (C) 2020  Kristjon Ciko <kristjoc@ifi.uio.no>
+ *	Copyright (C) 2023	Kristjon Ciko <kristjoc@ifi.uio.no>
  *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
+ *	This program is free software: you can redistribute it and/or modify
+ *	it under the terms of the GNU General Public License as published by
+ *	the Free Software Foundation, either version 3 of the License, or
+ *	(at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *	This program is distributed in the hope that it will be useful,
+ *	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *	GNU General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *	You should have received a copy of the GNU General Public License
+ *	along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifndef _PEPDNA_CONNECTION_H
@@ -42,10 +42,10 @@ extern struct pepdna_server *pepdna_srv;
 
 /**
  * struct syn_tuple - 4-tuple of syn packet
- * @saddr   - source IP address
- * @ source - source TCP port
- * @daddr   - destination IP address
- * @dest    - destination TCP port
+ * @saddr	    - source IP address
+ * @ source         - source TCP port
+ * @daddr	    - destination IP address
+ * @dest	    - destination TCP port
  */
 struct syn_tuple {
 	__be32 saddr;
@@ -56,22 +56,22 @@ struct syn_tuple {
 
 /**
  * struct pepdna_con - KPROXY connection struct
- * @kref:      reference counter to connection object
- * @server:    pointer to connected KPROXY server
+ * @kref:	   reference counter to connection object
+ * @server:	   pointer to connected KPROXY server
  * @tcfa_work: TCP connect/RINA Flow Allocation after accept work item
  * @l2r_work:  left2right work item
  * @r2l_work:  right2left work item
- * @hlist:     node member in hash table
- * @flow:      RINA flow
+ * @hlist:	   node member in hash table
+ * @flow:	   RINA flow
  * @port_id:   port id of the flow
- * @lsock:     left TCP socket
- * @rsock:     right TCP socket
- * @lflag:     left connection state
- * @rflag:     right connection state
+ * @lsock:	   left TCP socket
+ * @rsock:	   right TCP socket
+ * @lflag:	   indicates left connection state
+ * @rflag:	   indicates left connection state
  * @hash_conn_id: 32-bit hash connection identifier
- * @ts:        timestamp of the first incoming SYN
- * @tuple:     connection tuple
- * @skb:       initial SYN sk_buff
+ * @ts:		   timestamp of the first incoming SYN
+ * @tuple:	   connection tuple
+ * @skb:	   initial SYN sk_buff
  */
 struct pepdna_con {
 	struct kref kref;
@@ -94,15 +94,11 @@ struct pepdna_con {
 	struct sk_buff *skb;
 };
 
-bool tcpcon_is_ready(struct pepdna_con *);
 bool lconnected(struct pepdna_con *);
 bool rconnected(struct pepdna_con *);
-struct pepdna_con *pepdna_con_alloc(struct syn_tuple *,
-				    struct sk_buff *,
-				    uint32_t,
-				    uint64_t,
-				    int);
 struct pepdna_con *pepdna_con_find(uint32_t);
+struct pepdna_con *pepdna_con_alloc(struct syn_tuple *, struct sk_buff *,
+				    uint32_t, uint64_t, int);
 void pepdna_con_get(struct pepdna_con *);
 void pepdna_con_put(struct pepdna_con *);
 void pepdna_con_close(struct pepdna_con *);

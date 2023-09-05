@@ -1,5 +1,5 @@
 /*
- *  pep-dna/pepdna/kmodule/core.c: PEP-DNA core module
+ *  pep-dna/kmodule/core.c: PEP-DNA core module
  *
  *  Copyright (C) 2023  Kristjon Ciko <kristjoc@ifi.uio.no>
  *
@@ -28,12 +28,12 @@
 /* START of Module Parameters */
 int port = 0;
 module_param(port, int, 0644);
-MODULE_PARM_DESC(port, "PEP-DNA TCP listening port");
+MODULE_PARM_DESC(port, "PEP-DNA main TCP listening port");
 
 int mode = -1;
 module_param(mode, int, 0644);
 MODULE_PARM_DESC(mode,
-     "TCP2TCP | TCP2RINA | TCP2CCN | RINA2TCP | RINA2RINA | CCN2TCP | CCN2CCN");
+		 "TCP2TCP / TCP2RINA / TCP2CCN / RINA2TCP / RINA2RINA ...");
 /* END of Module Parameters */
 
 int sysctl_pepdna_sock_rmem[3] __read_mostly;	    /* min/default/max */

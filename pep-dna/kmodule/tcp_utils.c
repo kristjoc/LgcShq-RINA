@@ -1,7 +1,7 @@
 /*
- *  pep-dna/pepdna/kmodule/utils.c: PEP-DNA related utilities
+ *  pep-dna/kmodule/utils.c: PEP-DNA related utilities
  *
- *  Copyright (C) 2020  Kristjon Ciko <kristjoc@ifi.uio.no>
+ *  Copyright (C) 2023  Kristjon Ciko <kristjoc@ifi.uio.no>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,8 +18,9 @@
  */
 
 #include "core.h"           /* core header                                */
-#include "tcp_utils.h"      /* main header                                */
+#include "connection.h"
 #include "hash.h"
+#include "tcp_utils.h"      /* main header                                */
 
 #include <linux/kernel.h>   /* included for sprintf                       */
 #include <linux/kthread.h>  /* included for kthread_should_stop           */
@@ -131,6 +132,7 @@ static void pepdna_wait_to_send(struct sock *sk)
 {
         struct socket_wq *wq = NULL;
         long timeo = usecs_to_jiffies(CONN_POLL_TIMEOUT);
+	struct pepdna_con *con = sk->sk_user_data;
 
         rcu_read_lock();
         wq  = rcu_dereference(sk->sk_wq);
@@ -140,6 +142,8 @@ static void pepdna_wait_to_send(struct sock *sk)
 		wait_event_interruptible_timeout(wq->wait,
                                                  pepdna_sock_writeable(sk),
                                                  timeo);
+		if (atomic_read(&con->rflag) == 0)
+			break;
         } while(!pepdna_sock_writeable(sk));
 }
 
@@ -149,10 +153,8 @@ static void pepdna_wait_to_send(struct sock *sk)
  * ------------------------------------------------------------------------- */
 int pepdna_sock_write(struct socket *sock, unsigned char *buf, size_t len)
 {
-        struct msghdr msg = {
-                .msg_flags = MSG_DONTWAIT | MSG_NOSIGNAL,
-        };
-        struct kvec vec;
+	struct msghdr msg = {.msg_flags = MSG_DONTWAIT|MSG_NOSIGNAL};
+	struct kvec vec;
 	size_t left = len;
         size_t sent = 0;
         int count   = 0;
@@ -167,14 +169,14 @@ int pepdna_sock_write(struct socket *sock, unsigned char *buf, size_t len)
                         sent += rc;
                         left -= rc;
                 } else {
-                        if (rc == -EAGAIN) {
-                                pepdna_wait_to_send(sock->sk);
-                                continue;
-                        } else if (rc == 0) {
-                                if (++count < 3) /* FIXME */
-                                        continue;
+                        if (rc == -EAGAIN || rc == 0) {
+                                /* pepdna_wait_to_send(sock->sk); */
+				cond_resched();
+				if (++count < 3)
+                                	continue;
+				return -1;
                         }
-                        return sent ? sent:rc;
+                        /* return sent ? sent:rc; */
                 }
         }
 

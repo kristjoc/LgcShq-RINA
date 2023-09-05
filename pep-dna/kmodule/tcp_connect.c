@@ -46,10 +46,9 @@ void pepdna_tcp_connect(struct work_struct *work)
 	int rc                   = 0;
 
 	/* 1. Create socket */
-	if (sock_create_kern(&init_net, AF_INET, SOCK_STREAM, IPPROTO_TCP,
-			     &sock) < 0) {
+	if (sock_create_kern(&init_net, AF_INET, SOCK_STREAM, IPPROTO_TCP, &sock) < 0) {
 		pep_err("sock_create_kern returned %d", rc);
-		return;
+		goto err;
 	}
 
 	/* Source and Destination addresses */
@@ -90,16 +89,18 @@ void pepdna_tcp_connect(struct work_struct *work)
 		goto err;
 	}
 #endif
-
 	/* 5. Connect to Target Host */
-	rc = kernel_connect(sock, (struct sockaddr*)&daddr, sizeof(daddr), 0);
+	rc = kernel_connect(sock, (struct sockaddr*)&daddr, sizeof(daddr), O_NONBLOCK);
 	if (rc < 0 && (rc != -EINPROGRESS)) {
 		pep_err("kernel_connect failed %d", rc);
-		sock_release(sock);
+		if (sock) {
+			kernel_sock_shutdown(sock, SHUT_RDWR);
+			sock_release(sock);
+		}
 		goto err;
 	}
 	str_ip = inet_ntoa(&(daddr.sin_addr));
-	pep_debug("PEP-DNA rconnected to %s:%d",str_ip, ntohs(daddr.sin_port));
+	pep_debug("pepdna rconnected to %s:%d",str_ip, ntohs(daddr.sin_port));
 	kfree(str_ip);
 
 	if (con->server->mode == TCP2TCP) {
@@ -111,11 +112,12 @@ void pepdna_tcp_connect(struct work_struct *work)
 		sk->sk_user_data  = con;
 		write_unlock_bh(&sk->sk_callback_lock);
 
-	    /* At this point, right TCP connection is established. Reinject SYN in
-	     * back in the stack so that the left TCP connection can be established
-	     * There is no need to set callbacks here for the left socket as
-	     * pepdna_tcp_accept() will take care of it.
-	     */
+		/* At this point, right TCP connection is established.
+		 * Reinject SYN in back in the stack so that the left
+		 * TCP connection can be established There is no need
+		 * to set callbacks here for the left socket as
+		 * pepdna_tcp_accept() will take care of it.
+		 */
 		pep_debug("Reinjecting initial SYN packet");
 #ifndef CONFIG_PEPDNA_LOCAL_SENDER
 		netif_receive_skb(con->skb);
@@ -132,7 +134,7 @@ void pepdna_tcp_connect(struct work_struct *work)
 				       con->hash_conn_id,
 				       atomic_read(&con->port_id), 1);
 		if (rc < 0) {
-			pep_err("Couldn't notify fallocator to resume flow allocation");
+			pep_err("Couldn't ask to resume flow allocation");
 			goto err;
 		}
 		/* Register callbacks for 'left' socket */
@@ -146,5 +148,5 @@ void pepdna_tcp_connect(struct work_struct *work)
 #endif
 	return;
 err:
-	pepdna_con_put(con);
+	pepdna_con_close(con);
 }
