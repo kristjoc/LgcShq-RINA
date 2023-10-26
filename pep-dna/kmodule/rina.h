@@ -57,11 +57,9 @@ bool flow_is_ready(struct pepdna_con *);
 bool queue_is_ready(struct ipcp_flow *);
 long pepdna_wait_for_sdu(struct ipcp_flow *);
 bool flow_is_ok(struct ipcp_flow *);
-void pepdna_flow_alloc(struct work_struct *);
-int  pepdna_con_i2rina_fwd(struct pepdna_con *);
-int  pepdna_con_rina2i_fwd(struct pepdna_con *);
-void pepdna_con_i2r_work(struct work_struct *work);
-void pepdna_con_r2i_work(struct work_struct *work);
+void pepdna_rina_flow_alloc(struct work_struct *);
+void pepdna_con_i2r_work(struct work_struct *);
+void pepdna_con_r2i_work(struct work_struct *);
 void nl_i2r_callback(struct nl_msg *);
 void nl_r2i_callback(struct nl_msg *);
 #endif

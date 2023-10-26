@@ -1,7 +1,7 @@
 /*
- *  pep-dna/pepdna/kmodule/tcp_connet.c: PEP-DNA TCP connect()
+ *  pep-dna/kmodule/tcp_connet.c: PEP-DNA TCP connect()
  *
- *  Copyright (C) 2020  Kristjon Ciko <kristjoc@ifi.uio.no>
+ *  Copyright (C) 2023  Kristjon Ciko <kristjoc@ifi.uio.no>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,12 +27,16 @@
 #include "rina.h"
 #endif
 
+#ifdef CONFIG_PEPDNA_MINIP
+#include "minip.h"
+#endif
+
 #ifdef CONFIG_PEPDNA_LOCAL_SENDER
 #include <net/ip.h>
 #endif
 
 /*
- * TCP2TCP | RINA2TCP  scenario
+ * TCP2TCP | RINA2TCP | MINIP2TCP  scenarios
  * Connect to TCP|RINA server upon accepting the connection
  * ------------------------------------------------------------------------- */
 void pepdna_tcp_connect(struct work_struct *work)
@@ -135,6 +139,22 @@ void pepdna_tcp_connect(struct work_struct *work)
 				       atomic_read(&con->port_id), 1);
 		if (rc < 0) {
 			pep_err("Couldn't ask to resume flow allocation");
+			goto err;
+		}
+		/* Register callbacks for 'left' socket */
+		con->lsock = sock;
+		sk         = sock->sk;
+		write_lock_bh(&sk->sk_callback_lock);
+		sk->sk_data_ready = pepdna_l2r_conn_data_ready;
+		sk->sk_user_data  = con;
+		write_unlock_bh(&sk->sk_callback_lock);
+	}
+#endif
+#ifdef CONFIG_PEPDNA_MINIP
+	if (con->server->mode == MINIP2TCP) {
+		rc = pepdna_minip_conn_response(con->hash_conn_id);
+		if (rc < 0) {
+			pep_err("Couldn't send MINIP flow response");
 			goto err;
 		}
 		/* Register callbacks for 'left' socket */

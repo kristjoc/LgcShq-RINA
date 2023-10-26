@@ -26,6 +26,10 @@
 #include "rina.h"
 #endif
 
+#ifdef CONFIG_PEPDNA_MINIP
+#include "minip.h"
+#endif
+
 #ifdef CONFIG_PEPDNA_CCN
 #include "ccn.h"
 #endif
@@ -74,7 +78,7 @@ struct pepdna_con *pepdna_con_alloc(struct syn_tuple *syn, struct sk_buff *skb,
 	case TCP2RINA:
 		INIT_WORK(&con->l2r_work, pepdna_con_i2r_work);
 		INIT_WORK(&con->r2l_work, pepdna_con_r2i_work);
-		INIT_WORK(&con->tcfa_work, pepdna_flow_alloc);
+		INIT_WORK(&con->tcfa_work, pepdna_rina_flow_alloc);
 		break;
 	case RINA2TCP:
 		INIT_WORK(&con->l2r_work, pepdna_con_i2r_work);
@@ -84,7 +88,19 @@ struct pepdna_con *pepdna_con_alloc(struct syn_tuple *syn, struct sk_buff *skb,
 	case RINA2RINA:
 		/* INIT_WORK(&con->l2r_work, pepdna_con_rl2rr_work); */
 		/* INIT_WORK(&con->r2l_work, pepdna_con_rr2rl_work); */
-		/* INIT_WORK(&con->tcfa_work, pepdna_flow_alloc); */
+		/* INIT_WORK(&con->tcfa_work, pepdna_rina_flow_alloc); */
+		break;
+#endif
+#ifdef CONFIG_PEPDNA_MINIP
+	case TCP2MINIP:
+		INIT_WORK(&con->l2r_work, pepdna_con_i2m_work);
+		INIT_WORK(&con->r2l_work, pepdna_con_m2i_work);
+		INIT_WORK(&con->tcfa_work, pepdna_minip_handshake);
+		break;
+	case MINIP2TCP:
+		INIT_WORK(&con->l2r_work, pepdna_con_i2m_work);
+		INIT_WORK(&con->r2l_work, pepdna_con_m2i_work);
+		INIT_WORK(&con->tcfa_work, pepdna_tcp_connect); // FIXME
 		break;
 #endif
 #ifdef CONFIG_PEPDNA_CCN

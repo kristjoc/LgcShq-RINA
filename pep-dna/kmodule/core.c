@@ -32,8 +32,13 @@ MODULE_PARM_DESC(port, "PEP-DNA main TCP listening port");
 
 int mode = -1;
 module_param(mode, int, 0644);
-MODULE_PARM_DESC(mode,
-		 "TCP2TCP / TCP2RINA / TCP2CCN / RINA2TCP / RINA2RINA ...");
+MODULE_PARM_DESC(mode, "PEP-DNA operating mode (e.g., TCP2TCP, TCP2RINA, ...)");
+
+#ifdef CONFIG_PEPDNA_MINIP
+char *ifname = "eth0";
+module_param(ifname, charp, 0644);
+MODULE_PARM_DESC(ifname, "Interface name");
+#endif
 /* END of Module Parameters */
 
 int sysctl_pepdna_sock_rmem[3] __read_mostly;	    /* min/default/max */
@@ -49,12 +54,16 @@ static const char* get_mode_name(void)
 	case 2:
 		return "TCP2CCN";
 	case 3:
-		return "RINA2TCP";
+		return "TCP2MINIP";
 	case 4:
-		return "RINA2RINA";
+		return "RINA2TCP";
 	case 5:
-		return "CCN2TCP";
+		return "MINIP2TCP";
 	case 6:
+		return "CCN2TCP";
+	case 7:
+		return "RINA2RINA";
+	case 8:
 		return "CCN2CCN";
 	default:
 		return "ERROR";

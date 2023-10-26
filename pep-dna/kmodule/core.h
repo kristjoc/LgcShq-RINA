@@ -24,14 +24,14 @@
 
 #define PEPDNA_MOD_VER "0.4.0"
 #define PEPDNA_DESCRIPTION "PEP-DNA: a Performance Enhancing Proxy for "\
-			   "Deploying Network Architectures"
+	"Deploying Network Architectures"
 
 extern int sysctl_pepdna_sock_rmem[3] __read_mostly;
 extern int sysctl_pepdna_sock_wmem[3] __read_mostly;
 
 #ifdef CONFIG_PEPDNA_DEBUG
 #define pep_debug(fmt, args...) pr_debug("pepdna[DBG] %s(): " fmt"\n", \
-					 __func__ , ##args)
+	__func__ , ##args)
 #else
 /* do nothing instead of pr_debug() */
 static inline __printf(1, 2)
@@ -41,9 +41,9 @@ void pep_debug(char *fmt, ...)
 #endif
 
 #define pep_err(fmt, args...) pr_err("pepdna[ERR] %s(): " fmt"\n", \
-        			     __func__ , ##args)
+	__func__ , ##args)
 #define pep_info(fmt, args...) pr_info("pepdna[INFO] %s(): " fmt"\n", \
-        			       __func__ , ##args)
+	__func__ , ##args)
 
 #ifdef CONFIG_SYSCTL
 int pepdna_register_sysctl(void);

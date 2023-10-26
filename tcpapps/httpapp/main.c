@@ -398,7 +398,7 @@ static int main_client_fn(char *_url, bool _fct_flag, bool _jfi_flag)
         pthread_t thread[MAX_CONNS];
         int asock[MAX_CONNS];
         time_t t;
-	useconds_t usec;
+	    useconds_t usec;
 
         if (debug)
                 printf("main client started ... \n");
@@ -409,10 +409,10 @@ static int main_client_fn(char *_url, bool _fct_flag, bool _jfi_flag)
                 return 0;
         }
 
-	if (_jfi_flag)
-		usec = 10000;
-	else
-		usec = 1000;
+	    if (_jfi_flag)
+		        usec = 10000;
+	    else
+				usec = 1000;
 
 
         // Pasrse URL to get the IP, Port and Filename
@@ -438,10 +438,8 @@ static int main_client_fn(char *_url, bool _fct_flag, bool _jfi_flag)
 
         // Spawn all client threads
         for (int id = 0; id < count; ++id) {
-                rc = pthread_create(&thread[id],
-				    NULL,
-				    cthread_fn_cdf,
-				    (void *)&asock[id]);
+                rc = pthread_create(&thread[id],NULL,cthread_fn_cdf,
+                                    (void *)&asock[id]);
                 if (rc < 0) {
                         /* perror("pthread_create"); */
                         close(asock[id]);

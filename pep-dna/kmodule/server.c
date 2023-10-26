@@ -33,6 +33,10 @@
 #include "ccn.h"
 #endif
 
+#ifdef CONFIG_PEPDNA_MINIP
+#include "minip.h"
+#endif
+
 #include <linux/kthread.h>
 #include <linux/in.h>
 #include <linux/init.h>
@@ -44,6 +48,9 @@
 /* External variables */
 extern int mode;
 extern int port;
+#ifdef CONFIG_PEPDNA_MINIP
+extern char *ifname;
+#endif
 
 /* Global variables */
 struct pepdna_server *pepdna_srv = NULL;
@@ -51,12 +58,22 @@ struct pepdna_server *pepdna_srv = NULL;
 /* Static functions */
 static unsigned int pepdna_pre_hook(void *, struct sk_buff *,
 				    const struct nf_hook_state *);
+#ifdef CONFIG_PEPDNA_MINIP
+struct packet_type minip;
+static int pepdna_minip_skb_recv(struct sk_buff *skb, struct net_device *dev,
+				 struct packet_type *pt,
+				 struct net_device *orig_dev);
+#endif
 static void init_pepdna_server(struct pepdna_server *);
 static int pepdna_i2i_start(struct pepdna_server *);
 #ifdef CONFIG_PEPDNA_RINA
 static int pepdna_r2r_start(struct pepdna_server *);
 static int pepdna_r2i_start(struct pepdna_server *);
 static int pepdna_i2r_start(struct pepdna_server *);
+#endif
+#ifdef CONFIG_PEPDNA_MINIP
+static int pepdna_m2i_start(struct pepdna_server *);
+static int pepdna_i2m_start(struct pepdna_server *);
 #endif
 #ifdef CONFIG_PEPDNA_CCN
 static int pepdna_i2c_start(struct pepdna_server *);
@@ -93,8 +110,8 @@ int pepdna_work_init(struct pepdna_server *srv)
 	}
 	srv->accept_wq = wq;
 
-	/* TCP2TCP, TCP2RINA, TCP2CCN, RINA2TCP */
-	if (srv->mode < 4) {
+	/* TCP2TCP, TCP2RINA, TCP2CCN, TCP2MINIP, RINA2TCP, MINIP2TCP */
+	if (srv->mode < 6) {
 		wq = alloc_workqueue("connect_alloc_wq", WQ_HIGHPRI|WQ_UNBOUND,
 				     max_active);
 		if (!wq) {
@@ -263,7 +280,37 @@ static unsigned int pepdna_pre_hook(void *priv, struct sk_buff *skb,
 	return NF_ACCEPT;
 }
 
-static const struct nf_hook_ops pepdna_nf_ops[] = {
+#ifdef CONFIG_PEPDNA_MINIP
+/**
+ * pepdna_minip_skb_recv - handle incoming MINIP message from an interface
+ * @skb: the received message
+ * @dev: the net device that the packet was received on
+ * @pt: the packet_type structure which was used to register this handler
+ * @orig_dev: the original receive net device in case the device is a bond
+ *
+ * Accept only packets explicitly sent to this node, or broadcast packets;
+ * ignores packets sent using interface multicast, and traffic sent to other
+ * nodes (which can happen if interface is running in promiscuous mode).
+ */
+static int pepdna_minip_skb_recv(struct sk_buff *skb, struct net_device *dev,
+			     struct packet_type *pt, struct net_device *orig_dev)
+{
+	rcu_read_lock();
+	if (pepdna_minip_skb_callback(skb)) {
+		pep_err("Error while receiving MINIP skb");
+		goto out;
+	}
+	rcu_read_unlock();
+	return NET_RX_SUCCESS;
+
+out:
+	rcu_read_unlock();
+	kfree_skb(skb);
+	return NET_RX_DROP;
+}
+#endif
+
+static const struct nf_hook_ops pepdna_inet_nf_ops[] = {
 	{
 		.hook		= pepdna_pre_hook,
 		.pf		= NFPROTO_IPV4,
@@ -296,8 +343,8 @@ static int pepdna_i2i_start(struct pepdna_server *srv)
 		return rc;
 	}
 
-	nf_register_net_hooks(&init_net, pepdna_nf_ops,
-			      ARRAY_SIZE(pepdna_nf_ops));
+	nf_register_net_hooks(&init_net, pepdna_inet_nf_ops,
+			      ARRAY_SIZE(pepdna_inet_nf_ops));
 	return 0;
 }
 
@@ -352,8 +399,8 @@ static int pepdna_i2r_start(struct pepdna_server *srv)
 		return rc;
 	}
 
-	nf_register_net_hooks(&init_net, pepdna_nf_ops,
-			      ARRAY_SIZE(pepdna_nf_ops));
+	nf_register_net_hooks(&init_net, pepdna_inet_nf_ops,
+			      ARRAY_SIZE(pepdna_inet_nf_ops));
 	return 0;
 }
 
@@ -363,19 +410,63 @@ static int pepdna_i2r_start(struct pepdna_server *srv)
  * --------------------------------------------------------------------------*/
 static int pepdna_r2r_start(struct pepdna_server *srv)
 {
-	/* int rc = 0; */
+	/* Not implemented yet */
 
-	/* INIT_WORK(&srv->accept_work, pepdna_acceptor_work); */
+	return 0;
+}
+#endif
 
-	/* rc = pepdna_work_init(srv); */
-	/* if (rc < 0) */
-	/*	   return rc; */
+#ifdef CONFIG_PEPDNA_MINIP
+/*
+ * Start MINIP-TCP task
+ * This function is called by pepdna_server_start() @'server.c'
+ * --------------------------------------------------------------------------*/
+static int pepdna_m2i_start(struct pepdna_server *srv)
+{
+	int rc = pepdna_work_init(srv);
+	if (rc < 0) {
+		return rc;
+	}
 
-	/* rc = pepdna_create_listener(srv); */
-	/* if (rc < 0) { */
-	/*	   pepdna_work_stop(srv); */
-	/*	   return rc; */
-	/* } */
+	minip.type = htons(ETH_P_MINIP);
+	/* FIXME */
+	minip.dev = dev_get_by_name (&init_net, ifname);
+	minip.func = pepdna_minip_skb_recv;
+	dev_add_pack (&minip);
+
+	return 0;
+}
+
+/*
+ * Start TCP-MINIP task
+ * This function is called by pepdna_server_start() @'server.c'
+ * ------------------------------------------------------------------------- */
+static int pepdna_i2m_start(struct pepdna_server *srv)
+{
+	int rc = 0;
+
+	INIT_WORK(&srv->accept_work, pepdna_acceptor_work);
+
+	rc = pepdna_work_init(srv);
+	if (rc < 0) {
+		pepdna_netlink_stop();
+		return rc;
+	}
+
+	rc = pepdna_tcp_listen_init(srv);
+	if (rc < 0) {
+		pepdna_work_stop(srv);
+		return rc;
+	}
+
+	nf_register_net_hooks(&init_net, pepdna_inet_nf_ops,
+			      ARRAY_SIZE(pepdna_inet_nf_ops));
+
+	minip.type = htons(ETH_P_MINIP);
+	/* FIXME */
+	minip.dev = dev_get_by_name (&init_net, ifname);
+	minip.func = pepdna_minip_skb_recv;
+	dev_add_pack (&minip);
 
 	return 0;
 }
@@ -402,8 +493,8 @@ static int pepdna_i2c_start(struct pepdna_server *srv)
 		return rc;
 	}
 
-	nf_register_net_hooks(&init_net, pepdna_nf_ops,
-			      ARRAY_SIZE(pepdna_nf_ops));
+	nf_register_net_hooks(&init_net, pepdna_inet_nf_ops,
+			      ARRAY_SIZE(pepdna_inet_nf_ops));
 	return 0;
 }
 
@@ -413,23 +504,8 @@ static int pepdna_i2c_start(struct pepdna_server *srv)
  * --------------------------------------------------------------------------*/
 static int pepdna_c2i_start(struct pepdna_server *srv)
 {
-	/* TODO: Not yet implemented! */
-	/* int rc = 0; */
+	/* TODO: Not implemented yet */
 
-	/* INIT_WORK(&srv->accept_work, pepdna_acceptor_work); */
-
-	/* rc = pepdna_work_init(srv); */
-	/* if (rc < 0) */
-	/*	   return rc; */
-
-	/* rc = pepdna_tcp_listen_init(srv); */
-	/* if (rc < 0) { */
-	/*	   pepdna_work_stop(srv); */
-	/*	   return rc; */
-	/* } */
-
-	/* nf_register_net_hooks(&init_net, pepdna_nf_ops, */
-	/*		   ARRAY_SIZE(pepdna_nf_ops)); */
 	return 0;
 }
 
@@ -439,23 +515,8 @@ static int pepdna_c2i_start(struct pepdna_server *srv)
  * --------------------------------------------------------------------------*/
 static int pepdna_c2c_start(struct pepdna_server *srv)
 {
-	/* TODO: Not yet implemented! */
-	/* int rc = 0; */
+	/* TODO: Not implemented yet */
 
-	/* INIT_WORK(&srv->accept_work, pepdna_acceptor_work); */
-
-	/* rc = pepdna_work_init(srv); */
-	/* if (rc < 0) */
-	/*	   return rc; */
-
-	/* rc = pepdna_tcp_listen_init(srv); */
-	/* if (rc < 0) { */
-	/*	   pepdna_work_stop(srv); */
-	/*	   return rc; */
-	/* } */
-
-	/* nf_register_net_hooks(&init_net, pepdna_nf_ops, */
-	/*		   ARRAY_SIZE(pepdna_nf_ops)); */
 	return 0;
 }
 #endif
@@ -524,6 +585,16 @@ int pepdna_server_start(void)
 			goto err_start;
 		break;
 #endif
+#ifdef CONFIG_PEPDNA_MINIP
+	case TCP2MINIP:
+		if (pepdna_i2m_start(srv) < 0)
+			goto err_start;
+		break;
+	case MINIP2TCP:
+		if (pepdna_m2i_start(srv) < 0)
+			goto err_start;
+		break;
+#endif
 	default:
 		pep_err("pepdna mode undefined");
 		goto err_start;
@@ -546,10 +617,14 @@ void pepdna_server_stop(void)
 	struct hlist_node *n;
 
 	/* 1. First, we unregister NF_HOOK to stop processing new SYNs */
-	if (pepdna_srv->mode < 3)
-		nf_unregister_net_hooks(&init_net, pepdna_nf_ops,
-					ARRAY_SIZE(pepdna_nf_ops));
-
+	if (pepdna_srv->mode < 4) {
+		nf_unregister_net_hooks(&init_net, pepdna_inet_nf_ops,
+					ARRAY_SIZE(pepdna_inet_nf_ops));
+	}
+	/* Remove the MINIP packet hook */
+#ifdef CONFIG_PEPDNA_MINIP
+		dev_remove_pack(&minip);
+#endif
 	/* 2. Check for connections which are still alive and destroy them */
 	if (atomic_read(&pepdna_srv->conns)) {
 		hlist_for_each_entry_safe(con, n, pepdna_srv->htable, hlist) {

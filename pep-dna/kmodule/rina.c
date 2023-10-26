@@ -30,12 +30,14 @@
 #include <linux/signal.h>
 #else
 #include <linux/sched/signal.h>
+#endif
 
 #ifdef CONFIG_PEPDNA_LOCAL_SENDER
 #include <net/ip.h>
 #endif
 
-#endif
+static int pepdna_con_i2rina_fwd(struct pepdna_con *);
+static int pepdna_con_rina2i_fwd(struct pepdna_con *);
 
 
 /*
@@ -103,8 +105,8 @@ long pepdna_wait_for_sdu(struct ipcp_flow *flow)
 /*
  * Send DUs over a RINA flow
  * ------------------------------------------------------------------------- */
-int pepdna_flow_write(struct ipcp_flow *flow, int pid, unsigned char *buf,
-		      size_t len)
+static int pepdna_flow_write(struct ipcp_flow *flow, int pid, unsigned char *buf,
+			     size_t len)
 {
 	struct ipcp_instance *ipcp = NULL;
 	struct du *du		   = NULL;
@@ -152,7 +154,7 @@ out:
 }
 
 
-void pepdna_flow_alloc(struct work_struct *work)
+void pepdna_rina_flow_alloc(struct work_struct *work)
 {
 	struct pepdna_con *con = container_of(work, struct pepdna_con,
 					      tcfa_work);
