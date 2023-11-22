@@ -85,7 +85,7 @@ void pepdna_tcp_connect(struct work_struct *work)
 #endif
 
 #ifndef CONFIG_PEPDNA_LOCAL_SENDER
-	/* 4. Bind before connect to spoof source IP and Port */
+	/* 4. Bind before connect to spoof source IP and TCP port */
 	rc = kernel_bind(sock, (struct sockaddr*)&saddr, sizeof(saddr));
 	if (rc < 0) {
 		pep_err("kernel_bind %d", rc);
@@ -154,7 +154,7 @@ void pepdna_tcp_connect(struct work_struct *work)
 	if (con->server->mode == MINIP2TCP) {
 		rc = pepdna_minip_conn_response(con->hash_conn_id);
 		if (rc < 0) {
-			pep_err("Couldn't send MINIP flow response");
+			pep_err("error sending MINIP flow response");
 			goto err;
 		}
 		/* Register callbacks for 'left' socket */
@@ -164,6 +164,11 @@ void pepdna_tcp_connect(struct work_struct *work)
 		sk->sk_data_ready = pepdna_l2r_conn_data_ready;
 		sk->sk_user_data  = con;
 		write_unlock_bh(&sk->sk_callback_lock);
+
+		/* At this point, the right TCP connection is established */
+		atomic_set(&con->lflag, 1);
+		/* Wake up 'left' socket */
+		con->lsock->sk->sk_data_ready(con->lsock->sk);
 	}
 #endif
 	return;

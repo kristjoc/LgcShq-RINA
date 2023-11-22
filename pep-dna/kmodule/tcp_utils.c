@@ -165,13 +165,16 @@ int pepdna_sock_write(struct socket *sock, unsigned char *buf, size_t len)
                 vec.iov_base = (unsigned char *)buf + sent;
 
                 rc = kernel_sendmsg(sock, &msg, &vec, 1, left);
+		pep_debug("sending %d bytes from MINIP to TCP", rc);
                 if (rc > 0) {
                         sent += rc;
                         left -= rc;
                 } else {
                         if (rc == -EAGAIN || rc == 0) {
                                 /* pepdna_wait_to_send(sock->sk); */
+#ifndef CONFIG_PEPDNA_MINIP
 				cond_resched();
+#endif
 				if (++count < 3)
                                 	continue;
 				return -1;

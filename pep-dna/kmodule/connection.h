@@ -55,20 +55,20 @@ struct syn_tuple {
 };
 
 /**
- * struct pepdna_con - KPROXY connection struct
+ * struct pepdna_con - pepdna connection struct
  * @kref:	   reference counter to connection object
  * @server:	   pointer to connected KPROXY server
- * @tcfa_work: TCP connect/RINA Flow Allocation after accept work item
- * @l2r_work:  left2right work item
- * @r2l_work:  right2left work item
+ * @tcfa_work:     TCP connect/RINA Flow Allocation after accept work item
+ * @l2r_work:      left2right work item
+ * @r2l_work:      right2left work item
  * @hlist:	   node member in hash table
  * @flow:	   RINA flow
- * @port_id:   port id of the flow
- * @lsock:	   left TCP socket
+ * @port_id:       port id of the flow
+ * @lsock:	  left TCP socket
  * @rsock:	   right TCP socket
  * @lflag:	   indicates left connection state
  * @rflag:	   indicates left connection state
- * @hash_conn_id: 32-bit hash connection identifier
+ * @hash_conn_id:  32-bit hash connection identifier
  * @ts:		   timestamp of the first incoming SYN
  * @tuple:	   connection tuple
  * @skb:	   initial SYN sk_buff
@@ -83,6 +83,13 @@ struct pepdna_con {
 #ifdef CONFIG_PEPDNA_RINA
 	struct ipcp_flow *flow;
 	atomic_t port_id;
+#endif
+#ifdef CONFIG_PEPDNA_MINIP
+	__u32 seq_to_send;
+	__u32 ack_expected;
+	__u32 seq_expected;
+	__u32 ack_to_send;
+	int go;
 #endif
 	struct socket *lsock;
 	struct socket *rsock;

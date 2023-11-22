@@ -7,17 +7,22 @@
 #define ETH_ALEN	6
 #define ETH_P_MINIP	0x88FF
 #define ETH_BROADCAST	{0xFF,0xFF,0xFF,0xFF,0xFF,0xFF}
+#define SEQ_INIT	1U
 
 /**
  * struct minip_hdr - MINIP header
- * @packet_type: batman-adv packet type, part of the general header
- * @dst: address of the destination node
- * @orig: address of the source node
+ * @packet_type: MINIP packet type
+ * @sdu_len: SDU length in bytes
  * @conn_id: hash(src IP, src port, dst IP, dst port)
+ * @seq: sequence number
+ * @ack: acknowledge number
  */
 struct minip_hdr {
 	__u8  packet_type;
+	__u16 sdu_len;
 	__u32 conn_id;
+	__u32 seq;
+	__u32 ack;
 } __attribute__ ((packed));
 
 /**

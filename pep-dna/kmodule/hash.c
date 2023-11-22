@@ -18,7 +18,6 @@
  */
 
 #include "hash.h"
-
 #include <linux/kernel.h>
 
 /*

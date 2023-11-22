@@ -133,7 +133,7 @@ static int pepdna_tcp_accept(struct pepdna_server *srv)
                 hash_id = identify_client(asock);
                 con     = pepdna_con_find(hash_id);
                 if (!con) {
-                        pep_err("con not found in Hash Table");
+                        pep_err("connection %u not found", hash_id);
                         sock_release(asock);
                         asock = NULL;
                         return -1;
