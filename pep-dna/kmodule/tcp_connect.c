@@ -156,7 +156,14 @@ void pepdna_tcp_connect(struct work_struct *work)
 		if (rc < 0) {
 			pep_err("error sending MINIP flow response");
 			goto err;
-		}
+                }
+
+		con->seq_to_send = 2U;
+                con->ack_expected = 3U; //FIXME
+                con->ack_to_send = 2U;
+		con->seq_expected = 2U;
+		con->window = WINDOW_SIZE;
+
 		/* Register callbacks for 'left' socket */
 		con->lsock = sock;
 		sk         = sock->sk;

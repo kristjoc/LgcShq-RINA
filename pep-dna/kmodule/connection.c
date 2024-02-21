@@ -131,6 +131,15 @@ struct pepdna_con *pepdna_con_alloc(struct syn_tuple *syn, struct sk_buff *skb,
 	atomic_set(&con->port_id, port_id);
 	con->flow = NULL;
 #endif
+#ifdef CONFIG_PEPDNA_MINIP
+        /* Create the retransmission queue for MINIP flow control */
+        con->rtxq = rtxq_create();
+        if (!con->rtxq) {
+                pep_err("Failed to create rtxq instance");
+                kfree(con);
+                return NULL;
+        }
+#endif
 	con->server = pepdna_srv;
 	atomic_inc(&con->server->conns);
 	con->lsock	= NULL;
@@ -235,8 +244,15 @@ void pepdna_con_close(struct pepdna_con *con)
 
                         if (con)
                                 cancel_work_sync(&con->r2l_work);
-                        pep_debug("r2l_work cancelled");
+                        pep_debug("RINA r2l_work cancelled");
                 }
+#endif
+#ifdef CONFIG_PEPDNA_MINIP
+                atomic_set(&con->rflag, 0);
+                if (rtxq_destroy(con->rtxq)) {
+			pep_err("failed to destroy MINIP rtxq queue");
+                }
+		pep_debug("destroyed MINIP rtxq queue");
 #endif
         }
 err:

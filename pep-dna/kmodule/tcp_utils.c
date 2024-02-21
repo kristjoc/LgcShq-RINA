@@ -39,8 +39,8 @@
 #include <linux/sched/signal.h>
 #endif
 
-static void pepdna_wait_to_send(struct sock *);
-static bool pepdna_sock_writeable(struct sock *);
+/* static void pepdna_wait_to_send(struct sock *); */
+/* static bool pepdna_sock_writeable(struct sock *); */
 
 
 /*
@@ -120,32 +120,32 @@ void pepdna_set_bufsize(struct socket *sock)
 /*
  * Check if socket send buffer has space
  * ------------------------------------------------------------------------- */
-static bool pepdna_sock_writeable(struct sock *sk)
-{
-        return sk_stream_is_writeable(sk);
-}
+/* static bool pepdna_sock_writeable(struct sock *sk) */
+/* { */
+/*         return sk_stream_is_writeable(sk); */
+/* } */
 
 /*
  * Wait for sock to become writeable
  * ------------------------------------------------------------------------- */
-static void pepdna_wait_to_send(struct sock *sk)
-{
-        struct socket_wq *wq = NULL;
-        long timeo = usecs_to_jiffies(CONN_POLL_TIMEOUT);
-	struct pepdna_con *con = sk->sk_user_data;
+/* static void pepdna_wait_to_send(struct sock *sk) */
+/* { */
+/*         struct socket_wq *wq = NULL; */
+/*         long timeo = usecs_to_jiffies(CONN_POLL_TIMEOUT); */
+/* 	struct pepdna_con *con = sk->sk_user_data; */
 
-        rcu_read_lock();
-        wq  = rcu_dereference(sk->sk_wq);
-        rcu_read_unlock();
+/*         rcu_read_lock(); */
+/*         wq  = rcu_dereference(sk->sk_wq); */
+/*         rcu_read_unlock(); */
 
-        do {
-		wait_event_interruptible_timeout(wq->wait,
-                                                 pepdna_sock_writeable(sk),
-                                                 timeo);
-		if (atomic_read(&con->rflag) == 0)
-			break;
-        } while(!pepdna_sock_writeable(sk));
-}
+/*         do { */
+/* 		wait_event_interruptible_timeout(wq->wait, */
+/*                                                  pepdna_sock_writeable(sk), */
+/*                                                  timeo); */
+/* 		if (atomic_read(&con->rflag) == 0) */
+/* 			break; */
+/*         } while(!pepdna_sock_writeable(sk)); */
+/* } */
 
 /*
  * Write buf of size_t len to TCP socket
@@ -153,7 +153,9 @@ static void pepdna_wait_to_send(struct sock *sk)
  * ------------------------------------------------------------------------- */
 int pepdna_sock_write(struct socket *sock, unsigned char *buf, size_t len)
 {
-	struct msghdr msg = {.msg_flags = MSG_DONTWAIT|MSG_NOSIGNAL};
+	struct msghdr msg = {
+		.msg_flags = MSG_DONTWAIT | MSG_NOSIGNAL,
+	};
 	struct kvec vec;
 	size_t left = len;
         size_t sent = 0;

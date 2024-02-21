@@ -26,6 +26,7 @@
 #include <linux/netfilter.h>
 
 #ifdef CONFIG_PEPDNA_RINA
+struct ipcp_flow;
 /* timeout for RINA flow allocation in msec */
 #define FLOW_ALLOC_TIMEOUT 3000
 #endif
@@ -34,9 +35,10 @@
 
 #define pepdna_hash(T, K) hash_min(K, HASH_BITS(T))
 
-#ifdef CONFIG_PEPDNA_RINA
-struct ipcp_flow;
+#ifdef CONFIG_PEPDNA_MINIP
+struct rtxq;
 #endif
+
 extern struct pepdna_server *pepdna_srv;
 
 
@@ -64,7 +66,13 @@ struct syn_tuple {
  * @hlist:	   node member in hash table
  * @flow:	   RINA flow
  * @port_id:       port id of the flow
- * @lsock:	  left TCP socket
+ * @rtxq:          MINIP retransmission queue
+ * @seq_to_send:   MINIP flow control
+ * @seq_expected:  MINIP flow control
+ * @ack_to_send;   MINIP flow control
+ * @ack_expected:  MINIP flow control
+ * @ window:       MINIP flow control
+ * @lsock:	   left TCP socket
  * @rsock:	   right TCP socket
  * @lflag:	   indicates left connection state
  * @rflag:	   indicates left connection state
@@ -85,11 +93,12 @@ struct pepdna_con {
 	atomic_t port_id;
 #endif
 #ifdef CONFIG_PEPDNA_MINIP
-	__u32 seq_to_send;
-	__u32 ack_expected;
-	__u32 seq_expected;
-	__u32 ack_to_send;
-	int go;
+        struct rtxq *rtxq;
+        __u32 seq_to_send;
+        __u32 seq_expected;
+        __u32 ack_to_send;
+        __u32 ack_expected;
+        __u8  window;
 #endif
 	struct socket *lsock;
 	struct socket *rsock;
