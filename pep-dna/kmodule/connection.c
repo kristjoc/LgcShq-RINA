@@ -201,8 +201,10 @@ void pepdna_con_close(struct pepdna_con *con)
         struct ipcp_flow *flow = (con) ? con->flow : NULL;
 #endif
 
-        if (!con)
-                return;
+        if (!con) {
+		pep_debug("Oops, con is being closed but is already NULL");
+		return;
+        }
 
         lsk = (con->lsock) ? con->lsock->sk : NULL;
         if (!lsk)
@@ -248,11 +250,15 @@ void pepdna_con_close(struct pepdna_con *con)
                 }
 #endif
 #ifdef CONFIG_PEPDNA_MINIP
-                atomic_set(&con->rflag, 0);
-                if (rtxq_destroy(con->rtxq)) {
-			pep_err("failed to destroy MINIP rtxq queue");
+                if (rconnected) {
+			pep_debug("Not ready to close the connection");
+			return;
+                } else {
+			if (rtxq_destroy(con->rtxq)) {
+				pep_err("failed to destroy MINIP rtxq queue");
+			}
+                        pep_debug("destroyed MINIP rtxq queue");
                 }
-		pep_debug("destroyed MINIP rtxq queue");
 #endif
         }
 err:
@@ -278,7 +284,10 @@ static void pepdna_con_kref_release(struct kref *kref)
 	}
 
 	hlist_del(&con->hlist);
-	kfree(con); con = NULL;
+        kfree(con);
+        con = NULL;
+
+        pep_debug("Freeing connection instance");
 	atomic_dec(&pepdna_srv->conns);
 }
 

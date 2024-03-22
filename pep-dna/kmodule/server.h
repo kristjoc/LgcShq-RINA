@@ -25,6 +25,7 @@
 #define MODULE_NAME      "pepdna"
 #define NF_PEPDNA_PRI    -500
 #define PEPDNA_HASH_BITS 9
+#define ETH_ALEN	 6
 #define MAX_CONNS        65535
 #define MAX_SDU_SIZE     1465
 #define MAX_BUF_SIZE     1465 * 3
@@ -59,15 +60,18 @@ enum server_mode {
  * @conns:	 counter for active connections
  */
 struct pepdna_server {
-        enum server_mode mode;
-        struct workqueue_struct *l2r_wq;
-        struct workqueue_struct *r2l_wq;
-        struct workqueue_struct *tcfa_wq;
-        struct workqueue_struct *accept_wq;
-        struct work_struct accept_work;
-        struct socket *listener;
-        int port;
-        struct hlist_head htable[PEPDNA_HASH_BITS];
+	enum server_mode mode;
+	struct workqueue_struct *l2r_wq;
+	struct workqueue_struct *r2l_wq;
+	struct workqueue_struct *tcfa_wq;
+	struct workqueue_struct *accept_wq;
+	struct work_struct accept_work;
+	struct socket *listener;
+	int port;
+#ifdef CONFIG_PEPDNA_MINIP
+        u8 to_mac[ETH_ALEN];
+#endif
+	struct hlist_head htable[PEPDNA_HASH_BITS];
 	atomic_t conns;
 };
 

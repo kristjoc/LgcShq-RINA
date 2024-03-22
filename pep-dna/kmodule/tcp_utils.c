@@ -177,8 +177,10 @@ int pepdna_sock_write(struct socket *sock, unsigned char *buf, size_t len)
 #ifndef CONFIG_PEPDNA_MINIP
 				cond_resched();
 #endif
-				if (++count < 3)
-                                	continue;
+                                if (++count < 3) {
+					pep_debug("Retrying sending...");
+					continue;
+				}
 				return -1;
                         }
                         /* return sent ? sent:rc; */

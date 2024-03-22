@@ -35,6 +35,7 @@
 
 #ifdef CONFIG_PEPDNA_MINIP
 #include "minip.h"
+#include <linux/etherdevice.h>
 #endif
 
 #include <linux/kthread.h>
@@ -50,6 +51,7 @@ extern int mode;
 extern int port;
 #ifdef CONFIG_PEPDNA_MINIP
 extern char *ifname;
+extern char *macstr;
 #endif
 
 /* Global variables */
@@ -527,6 +529,18 @@ static void init_pepdna_server(struct pepdna_server *srv)
 	srv->mode  = mode;
 	srv->port  = port;
 
+#ifdef CONFIG_PEPDNA_MINIP
+	if (macstr) {
+		mac_pton(macstr, srv->to_mac);
+                if (!is_valid_ether_addr(srv->to_mac) &&
+                    !is_broadcast_ether_addr(srv->to_mac)) {
+			pep_err("invalid MAC address of the peer pepdna");
+		}
+                else {
+			pep_debug("MAC address of the peer pepdna %s", macstr);
+		}
+        }
+#endif
 	srv->listener  = NULL;
 	srv->accept_wq = NULL;
 	srv->tcfa_wq   = NULL;

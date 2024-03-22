@@ -38,6 +38,10 @@ MODULE_PARM_DESC(mode, "PEP-DNA operating mode (e.g., TCP2TCP, TCP2RINA, ...)");
 char *ifname = "eth0";
 module_param(ifname, charp, 0644);
 MODULE_PARM_DESC(ifname, "Interface name");
+
+char *macstr = "ff:ff:ff:ff:ff:ff";
+module_param(macstr, charp, 0644);
+MODULE_PARM_DESC(macstr, "Ethernet MAC address of the peer PEP-DNA");
 #endif
 /* END of Module Parameters */
 
@@ -94,11 +98,12 @@ static int __init pepdna_init(void)
 		goto out;
 	}
 
-	pep_info("Started pepdna in %s mode", get_mode_name());
-	return 0;
+        pep_info("pepdna loaded in %s mode", get_mode_name());
 
+	return 0;
 out:
 	pep_err("Unable to load pepdna in %s mode", get_mode_name());
+
 	return rc;
 }
 

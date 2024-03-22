@@ -44,10 +44,10 @@ void pepdna_tcp_connect(struct work_struct *work)
 	struct pepdna_con *con = container_of(work, struct pepdna_con, tcfa_work);
 	struct sockaddr_in saddr = {0};
 	struct sockaddr_in daddr = {0};
-	struct socket *sock      = NULL;
-	struct sock *sk          = NULL;
-	const char *str_ip       = NULL;
-	int rc                   = 0;
+	struct socket *sock = NULL;
+	struct sock *sk = NULL;
+	const char *from, *to;;
+	int rc = 0;
 
 	/* 1. Create socket */
 	if (sock_create_kern(&init_net, AF_INET, SOCK_STREAM, IPPROTO_TCP, &sock) < 0) {
@@ -103,9 +103,11 @@ void pepdna_tcp_connect(struct work_struct *work)
 		}
 		goto err;
 	}
-	str_ip = inet_ntoa(&(daddr.sin_addr));
-	pep_debug("pepdna rconnected to %s:%d",str_ip, ntohs(daddr.sin_port));
-	kfree(str_ip);
+	from = inet_ntoa(&(saddr.sin_addr));
+	to   = inet_ntoa(&(daddr.sin_addr));
+	pep_debug("pepdna established %s:%d -> %s:%d connection",
+		  from, ntohs(saddr.sin_port), to, ntohs(daddr.sin_port));
+	kfree(from); kfree(to);
 
 	if (con->server->mode == TCP2TCP) {
 		/* Register callbacks for right socket */
@@ -152,7 +154,7 @@ void pepdna_tcp_connect(struct work_struct *work)
 #endif
 #ifdef CONFIG_PEPDNA_MINIP
 	if (con->server->mode == MINIP2TCP) {
-		rc = pepdna_minip_conn_response(con->hash_conn_id);
+		rc = pepdna_minip_conn_response(con->hash_conn_id, con->server->to_mac);
 		if (rc < 0) {
 			pep_err("error sending MINIP flow response");
 			goto err;

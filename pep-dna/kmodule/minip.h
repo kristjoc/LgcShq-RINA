@@ -21,11 +21,11 @@
  * @ack:         acknowledge number
  */
 struct minip_hdr {
-	__u8  packet_type;
-	__u16 sdu_len;
-	__u32 conn_id;
-	__u32 seq;
-	__u32 ack;
+	u8  packet_type;
+	u16 sdu_len;
+	u32 conn_id;
+	u32 seq;
+	u32 ack;
 } __attribute__ ((packed));
 
 /**
@@ -47,23 +47,23 @@ enum minip_packet_type {
 };
 
 struct rtxq_entry {
-        /* unsigned long    time_stamp; */
-        struct sk_buff *skb;
-        u8 retries;
-        struct list_head next;
+	/* unsigned long    time_stamp; */
+	struct sk_buff *skb;
+	u8 retries;
+	struct list_head next;
 };
 
 struct rtxqueue {
 	int len;
-        struct list_head head;
+	struct list_head head;
 };
 
 struct rtxq {
-        spinlock_t       lock;
-        struct rtxqueue *queue;
+	spinlock_t       lock;
+	struct rtxqueue *queue;
 };
 
-int pepdna_minip_conn_response(uint32_t);
+int pepdna_minip_conn_response(u32, u8 *);
 int pepdna_minip_skb_callback(struct sk_buff *);
 void pepdna_minip_handshake(struct work_struct *);
 void pepdna_con_i2m_work(struct work_struct *);
