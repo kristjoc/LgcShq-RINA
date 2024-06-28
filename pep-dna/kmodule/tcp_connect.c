@@ -42,11 +42,10 @@
 void pepdna_tcp_connect(struct work_struct *work)
 {
 	struct pepdna_con *con = container_of(work, struct pepdna_con, tcfa_work);
-	struct sockaddr_in saddr = {0};
-	struct sockaddr_in daddr = {0};
+	struct sockaddr_in saddr = {0}, daddr = {0};
 	struct socket *sock = NULL;
 	struct sock *sk = NULL;
-	const char *from, *to;;
+	const char *from, *to;
 	int rc = 0;
 
 	/* 1. Create socket */
@@ -94,7 +93,9 @@ void pepdna_tcp_connect(struct work_struct *work)
 	}
 #endif
 	/* 5. Connect to Target Host */
-	rc = kernel_connect(sock, (struct sockaddr*)&daddr, sizeof(daddr), O_NONBLOCK);
+	/* Use O_NONBLOCK flag if you don't want to wait for the right
+           TCP connection establishment */
+	rc = kernel_connect(sock, (struct sockaddr*)&daddr, sizeof(daddr), 0);
 	if (rc < 0 && (rc != -EINPROGRESS)) {
 		pep_err("kernel_connect failed %d", rc);
 		if (sock) {
@@ -105,7 +106,7 @@ void pepdna_tcp_connect(struct work_struct *work)
 	}
 	from = inet_ntoa(&(saddr.sin_addr));
 	to   = inet_ntoa(&(daddr.sin_addr));
-	pep_debug("pepdna established %s:%d -> %s:%d connection",
+	pep_dbg("pepdna established %s:%d -> %s:%d connection",
 		  from, ntohs(saddr.sin_port), to, ntohs(daddr.sin_port));
 	kfree(from); kfree(to);
 
@@ -124,7 +125,7 @@ void pepdna_tcp_connect(struct work_struct *work)
 		 * to set callbacks here for the left socket as
 		 * pepdna_tcp_accept() will take care of it.
 		 */
-		pep_debug("Reinjecting initial SYN packet");
+		pep_dbg("Reinjecting initial SYN packet");
 #ifndef CONFIG_PEPDNA_LOCAL_SENDER
 		netif_receive_skb(con->skb);
 #else
@@ -137,8 +138,7 @@ void pepdna_tcp_connect(struct work_struct *work)
 	if (con->server->mode == RINA2TCP) {
 		rc = pepdna_nl_sendmsg(con->tuple.saddr, con->tuple.source,
 				       con->tuple.daddr, con->tuple.dest,
-				       con->hash_conn_id,
-				       atomic_read(&con->port_id), 1);
+				       con->id, atomic_read(&con->port_id), 1);
 		if (rc < 0) {
 			pep_err("Couldn't ask to resume flow allocation");
 			goto err;
@@ -154,17 +154,16 @@ void pepdna_tcp_connect(struct work_struct *work)
 #endif
 #ifdef CONFIG_PEPDNA_MINIP
 	if (con->server->mode == MINIP2TCP) {
-		rc = pepdna_minip_conn_response(con->hash_conn_id, con->server->to_mac);
+		rc = pepdna_minip_send_response(con->id, con->server->to_mac);
 		if (rc < 0) {
-			pep_err("error sending MINIP flow response");
+			pep_err("Failed to send MINIP_CONN_RESPONSE");
 			goto err;
                 }
 
-		con->seq_to_send = 2U;
-                con->ack_expected = 3U; //FIXME
-                con->ack_to_send = 2U;
-		con->seq_expected = 2U;
-		con->window = WINDOW_SIZE;
+                con->state = ESTABLISHED;
+                con->next_seq++;
+                atomic_inc(&con->last_acked);
+                con->next_recv++;
 
 		/* Register callbacks for 'left' socket */
 		con->lsock = sock;

@@ -34,7 +34,7 @@ static void pepdna_tcp_listen_data_ready(struct sock *sk)
 {
         void (*ready)(struct sock *sk);
 
-        pep_debug("pepdna listen data ready sk %p\n", sk);
+        pep_dbg("pepdna listen data ready sk %p\n", sk);
 
         read_lock_bh(&sk->sk_callback_lock);
         ready = sk->sk_user_data;
@@ -95,14 +95,14 @@ int pepdna_tcp_listen_init(struct pepdna_server *srv)
                 pep_err("kernel_bind %d", rc);
                 goto err;
         }
-        pep_debug("listener bound to port %d", srv->port);
+        pep_dbg("listener bound to port %d", srv->port);
 
         rc = kernel_listen(sock, MAX_CONNS);
         if (rc < 0) {
                 pep_err("kernel_listen %d ", rc);
                 goto err;
         }
-        pep_debug("pepdna is listening for incoming TCP connections");
+        pep_dbg("pepdna is listening for incoming TCP connections");
         return 0;
 err:
         sock_release(sock);
@@ -138,7 +138,7 @@ static int pepdna_tcp_accept(struct pepdna_server *srv)
                         asock = NULL;
                         return -1;
                 }
-                pep_debug("pepdna accepted new conn. with hash_id %u", hash_id);
+                pep_dbg("pepdna accepted new conn. with hash_id %u", hash_id);
 
                 /* Register callbacks for left sock and activate right sock */
                 con->lsock = asock;
@@ -179,7 +179,7 @@ void pepdna_acceptor_work(struct work_struct *work)
                                                  accept_work);
         rc = pepdna_tcp_accept(srv);
         if (rc >=0)
-                pep_debug("TCP accept() returned  %d", rc);
+                pep_dbg("TCP accept() returned  %d", rc);
 }
 
 /*
@@ -196,7 +196,7 @@ void pepdna_tcp_listen_stop(struct socket *sock, struct work_struct *acceptor)
         if (pepdna_srv->mode == RINA2TCP || pepdna_srv->mode == RINA2RINA)
                 return;
 
-        pep_debug("Stopping pepdna main sock listener");
+        pep_dbg("Stopping pepdna main sock listener");
         sk = sock->sk;
 
         /* serialize with and prevent further callbacks */

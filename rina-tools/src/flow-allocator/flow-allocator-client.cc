@@ -146,15 +146,13 @@ void FlowAllocatorClient::thread_fn(struct nl_msg nlmsg)
 
     if (nlmsg.alloc) {
 
-        LOG_DBG("thread %lu is allocating Fd{%u, ?}", pthread_self(),
-                                                      nlmsg.hash_conn_id);
-        if ((port_id = createFlow(nlmsg.saddr, nlmsg.source,
-                                  nlmsg.daddr, nlmsg.dest,
-                                  nlmsg.hash_conn_id)) < 0) {
+        LOG_DBG("thread %lu is allocating Fd{%u, ?}", pthread_self(), nlmsg.id);
+        if ((port_id = createFlow(nlmsg.saddr, nlmsg.source, nlmsg.daddr,
+								  nlmsg.dest, nlmsg.id)) < 0) {
             LOG_ERR("thread %lu couldn't allocate Flow", pthread_self());
             return;
         }
-        insertFd(nlmsg.hash_conn_id, port_id);
+        insertFd(nlmsg.id, port_id);
         nlmsg.port_id = port_id;
 
         if (netlink_send_data(nl_sock, &nlmsg) < 0 ) {
@@ -163,8 +161,8 @@ void FlowAllocatorClient::thread_fn(struct nl_msg nlmsg)
         }
     } else {
         LOG_DBG("thread %lu deallocating Fd{%u, ?}", pthread_self(),
-                                                     nlmsg.hash_conn_id);
-        destroyFlow(nlmsg.hash_conn_id);
+                                                     nlmsg.id);
+        destroyFlow(nlmsg.id);
     }
     LOG_DBG("thread %lu terminated", pthread_self());
 }

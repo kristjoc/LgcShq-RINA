@@ -36,16 +36,16 @@
  * @source: source TCP port
  * @daddr: destination IP address
  * @dest: destination TCP port
- * @hash_conn_id: connection id
+ * @id: connection id
  * @port_id: port id of RINA flow
  * @alloc: 1: allocate / 0: deallocate
  */
 struct nl_msg {
-	uint32_t saddr;
-	uint16_t source;
-	uint32_t daddr;
-	uint16_t dest;
-	uint32_t hash_conn_id;
+	u32 saddr;
+	u16 source;
+	u32 daddr;
+	u16 dest;
+	u32 id;
 	int port_id;
 	bool alloc;
 } __attribute__ ((packed));

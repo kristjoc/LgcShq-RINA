@@ -27,14 +27,14 @@
 
 
 /* Socket receive buffer sizes */
-#define RCVBUF_MIN 8388608
-#define RCVBUF_DEF 8388608
-#define RCVBUF_MAX 8388608
+#define RCVBUF_MIN 8*1024*1024 /* 8388608 */
+#define RCVBUF_DEF 8*1024*1024 /* 8388608 */
+#define RCVBUF_MAX 8*1024*1024 /* 8388608 */
 
 /* Socket send buffer sizes */
-#define SNDBUF_MIN 8388608
-#define SNDBUF_DEF 8388608
-#define SNDBUF_MAX 8388608
+#define SNDBUF_MIN 8*1024*1024 /* 8388608 */
+#define SNDBUF_DEF 8*1024*1024 /* 8388608 */
+#define SNDBUF_MAX 8*1024*1024 /* 8388608 */
 
 /* timeout for wait_to_send after -EAGAIN */
 #define CONN_POLL_TIMEOUT 1000
@@ -45,9 +45,9 @@ void pepdna_ip_transparent(struct socket *);
 void pepdna_set_mark(struct socket *, u32);
 void pepdna_tcp_nonagle(struct socket *);
 void pepdna_set_bufsize(struct socket *);
-uint32_t identify_client(struct socket *);
+u32 identify_client(struct socket *);
 const char *inet_ntoa(struct in_addr *);
 void print_syn(__be32, __be16);
-uint32_t inet_addr(char *ip);
+u32  inet_addr(char *ip);
 
 #endif /* _PEPDNA_TCP_UTILS_H */

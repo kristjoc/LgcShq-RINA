@@ -67,16 +67,11 @@ struct syn_tuple {
  * @flow:	   RINA flow
  * @port_id:       port id of the flow
  * @rtxq:          MINIP retransmission queue
- * @seq_to_send:   MINIP flow control
- * @seq_expected:  MINIP flow control
- * @ack_to_send;   MINIP flow control
- * @ack_expected:  MINIP flow control
- * @ window:       MINIP flow control
  * @lsock:	   left TCP socket
  * @rsock:	   right TCP socket
  * @lflag:	   indicates left connection state
  * @rflag:	   indicates left connection state
- * @hash_conn_id:  32-bit hash connection identifier
+ * @id:            32-bit hash connection identifier
  * @ts:		   timestamp of the first incoming SYN
  * @tuple:	   connection tuple
  * @skb:	   initial SYN sk_buff
@@ -93,28 +88,48 @@ struct pepdna_con {
 	atomic_t port_id;
 #endif
 #ifdef CONFIG_PEPDNA_MINIP
-        struct rtxq *rtxq;
-        __u32 seq_to_send;
-        __u32 seq_expected;
-        __u32 ack_to_send;
-        __u32 ack_expected;
-        __u8  window;
+	/* sender variables */
+	/** @rtxq: retransmission queue pointer */
+	struct rtxq *rtxq;
+	/** @timer: timer for RTO */
+	struct timer_list timer;
+	/** @dup_acks: duplicate ACKs counter */
+	atomic_t dup_acks;
+	/** @sending: sending binary semaphore: 1 if sending, 0 is not */
+	atomic_t sending;
+	 /** @last_acked: last acked packet */
+	atomic_t last_acked;
+	/** @next_seq: next packet to be sent */
+        u32 next_seq;
+	/** @state: connection state */
+        u8 state;
+	/** @window: congestion window */
+        u8 window;
+	/* receiver variables */
+	/** @next_recv: next in-order packet expected */
+	u32 next_recv;
+        	/** @rto: sender timeout in milliseconds */
+	u32 rto;
+	/** @srtt: smoothed RTT scaled by 2^3 */
+	u32 srtt;
+	/** @rttvar: RTT variation scaled by 2^2 */
+	u32 rttvar;
 #endif
 	struct socket *lsock;
 	struct socket *rsock;
 	atomic_t lflag;
 	atomic_t rflag;
-	__u32 hash_conn_id;
-	__u64 ts;
+	u32 id;
+	u64 ts;
 	struct syn_tuple tuple;
 	struct sk_buff *skb;
 };
 
 bool lconnected(struct pepdna_con *);
 bool rconnected(struct pepdna_con *);
-struct pepdna_con *pepdna_con_find(uint32_t);
-struct pepdna_con *pepdna_con_alloc(struct syn_tuple *, struct sk_buff *,
-				    uint32_t, uint64_t, int);
+struct pepdna_con *pepdna_con_find(u32);
+struct pepdna_con *pepdna_con_alloc(struct syn_tuple *, struct sk_buff *, u32,
+                                    u64, int);
 void pepdna_con_get(struct pepdna_con *);
 void pepdna_con_put(struct pepdna_con *);
 void pepdna_con_close(struct pepdna_con *);

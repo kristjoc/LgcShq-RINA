@@ -5,7 +5,7 @@
 KERNBUILDDIR=@KERNBUILDDIR@
 RINADIR := $(HOME)/LgcShq-RINA/
 CCNDIR := $(HOME)/pep-dna/ccn-lite
-PEPDNADIR := $(PWD)/kmodule/
+PEPDNADIR := $(PWD)/kmodule
 
 ccflags-y += -Wtype-limits
 ifeq ($(CONFIG_PEPDNA_DEBUG),y)

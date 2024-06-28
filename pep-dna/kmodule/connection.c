@@ -125,13 +125,18 @@ struct pepdna_con *pepdna_con_alloc(struct syn_tuple *syn, struct sk_buff *skb,
 		return NULL;
 	}
 
-	con->hash_conn_id = hash_id;
+	con->id = hash_id;
 	con->ts = ts;
 #ifdef CONFIG_PEPDNA_RINA
 	atomic_set(&con->port_id, port_id);
 	con->flow = NULL;
 #endif
 #ifdef CONFIG_PEPDNA_MINIP
+        con->next_seq = MINIP_FIRST_SEQ;
+        atomic_set(&con->last_acked, MINIP_FIRST_SEQ);
+        con->next_recv = MINIP_FIRST_SEQ;
+	con->window = WINDOW_SIZE;
+
         /* Create the retransmission queue for MINIP flow control */
         con->rtxq = rtxq_create();
         if (!con->rtxq) {
@@ -139,6 +144,18 @@ struct pepdna_con *pepdna_con_alloc(struct syn_tuple *syn, struct sk_buff *skb,
                 kfree(con);
                 return NULL;
         }
+	atomic_set(&con->sending, 1);
+	/* Initialize dup_acks counter to 0 */
+        atomic_set(&con->dup_acks, 0);
+
+        /* RTO initial value is 3 seconds.
+	 * Details in Section 2.1 of RFC6298
+	 */
+	con->rto = 3000;
+	con->srtt = 0;
+	con->rttvar = 0;
+
+	timer_setup(&con->timer, minip_sender_timeout, 0);
 #endif
 	con->server = pepdna_srv;
 	atomic_inc(&con->server->conns);
@@ -153,7 +170,7 @@ struct pepdna_con *pepdna_con_alloc(struct syn_tuple *syn, struct sk_buff *skb,
 	con->tuple.dest	  = syn->dest;
 
 	INIT_HLIST_NODE(&con->hlist);
-	hash_add(pepdna_srv->htable, &con->hlist, con->hash_conn_id);
+	hash_add(pepdna_srv->htable, &con->hlist, con->id);
 
 	if (!queue_work(con->server->tcfa_wq, &con->tcfa_work)) {
 		pep_err("failed to queue tcfa_work");
@@ -178,7 +195,7 @@ struct pepdna_con *pepdna_con_find(uint32_t key)
 	rcu_read_lock();
 	head = &pepdna_srv->htable[pepdna_hash(pepdna_srv->htable, key)];
 	hlist_for_each_entry_safe(con, next, head, hlist) {
-		if (con->hash_conn_id == key) {
+		if (con->id == key) {
 			found = con;
 			break;
 		}
@@ -202,7 +219,7 @@ void pepdna_con_close(struct pepdna_con *con)
 #endif
 
         if (!con) {
-		pep_debug("Oops, con is being closed but is already NULL");
+		pep_dbg("Oops, con is being closed but is already NULL");
 		return;
         }
 
@@ -246,18 +263,20 @@ void pepdna_con_close(struct pepdna_con *con)
 
                         if (con)
                                 cancel_work_sync(&con->r2l_work);
-                        pep_debug("RINA r2l_work cancelled");
+                        pep_dbg("RINA r2l_work cancelled");
                 }
 #endif
 #ifdef CONFIG_PEPDNA_MINIP
+		del_timer(&con->timer);
+
                 if (rconnected) {
-			pep_debug("Not ready to close the connection");
+			pep_dbg("Not ready to close the connection");
 			return;
                 } else {
 			if (rtxq_destroy(con->rtxq)) {
 				pep_err("failed to destroy MINIP rtxq queue");
 			}
-                        pep_debug("destroyed MINIP rtxq queue");
+                        pep_dbg("destroyed MINIP rtxq queue");
                 }
 #endif
         }
@@ -287,7 +306,7 @@ static void pepdna_con_kref_release(struct kref *kref)
         kfree(con);
         con = NULL;
 
-        pep_debug("Freeing connection instance");
+        pep_dbg("Freeing connection instance");
 	atomic_dec(&pepdna_srv->conns);
 }
 

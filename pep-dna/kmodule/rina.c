@@ -163,7 +163,7 @@ void pepdna_rina_flow_alloc(struct work_struct *work)
 	/* Asking fallocator.client to initiate (1) a RINA flow allocation */
 	rc = pepdna_nl_sendmsg(con->tuple.saddr, con->tuple.source,
 			       con->tuple.daddr, con->tuple.dest,
-			       con->hash_conn_id, atomic_read(&con->port_id), 1);
+			       con->id, atomic_read(&con->port_id), 1);
 	if (rc < 0) {
 		pep_err("Couldn't notify fallocator to allocate a flow");
 		pepdna_con_close(con);
@@ -180,12 +180,12 @@ bool flow_is_ready(struct pepdna_con *con)
 	flow = kfa_flow_find_by_pid(kipcm_kfa(default_kipcm),
 				    atomic_read(&con->port_id));
 	if (flow) {
-		pep_debug("Flow with port_id %d is now ready",
+		pep_dbg("Flow with port_id %d is now ready",
 			  atomic_read(&con->port_id));
 		con->flow = flow;
 		con->flow->state = PORT_STATE_ALLOCATED;
 	} else {
-		pep_debug("Flow with port_id %d is not ready yet",
+		pep_dbg("Flow with port_id %d is not ready yet",
 			  atomic_read(&con->port_id));
 	}
 
@@ -234,7 +234,7 @@ int pepdna_con_rina2i_fwd(struct pepdna_con *con)
 
 	read = kfa_flow_du_read(kfa, port_id, &du, MAX_SDU_SIZE, blocking);
 	if (read <= 0) {
-		pep_debug("kfa_flow_du_read %d", read);
+		pep_dbg("kfa_flow_du_read %d", read);
 		return read;
 	}
 
@@ -243,7 +243,7 @@ int pepdna_con_rina2i_fwd(struct pepdna_con *con)
 
 	sent = pepdna_sock_write(lsock, du_buffer(du), read);
 	if (sent < 0) {
-		pep_debug("error forwarding from flow to socket");
+		pep_dbg("error forwarding from flow to socket");
 		read = -1;
 	}
 
@@ -285,7 +285,7 @@ int pepdna_con_i2rina_fwd(struct pepdna_con *con)
 		}
 	} else {
 		if (read == -EAGAIN || read == -EWOULDBLOCK)
-		pep_debug("kernel_recvmsg() returned %d", read);
+		pep_dbg("kernel_recvmsg() returned %d", read);
 	}
 
 	kfree(buffer);
@@ -320,7 +320,7 @@ void nl_r2i_callback(struct nl_msg *nlmsg)
 
 		kfree(syn);
 	} else {
-		con = pepdna_con_find(nlmsg->hash_conn_id);
+		con = pepdna_con_find(nlmsg->id);
 		if (!con) {
 			pep_err("Connection was removed from Hash Table");
 			return;
@@ -355,7 +355,7 @@ void nl_i2r_callback(struct nl_msg *nlmsg)
 {
 	struct pepdna_con *con = NULL;
 
-	con = pepdna_con_find(nlmsg->hash_conn_id);
+	con = pepdna_con_find(nlmsg->id);
 	if (!con) {
 		pep_err("Connection not found in Hash table");
 		return;
@@ -373,7 +373,7 @@ void nl_i2r_callback(struct nl_msg *nlmsg)
 		 * established There is no need to set callbacks here for the
 		 * left socket as pepdna_tcp_accept() will take care of it.
 		 */
-		pep_debug("Reinjecting initial SYN packet");
+		pep_dbg("Reinjecting initial SYN packet");
 #ifndef CONFIG_PEPDNA_LOCAL_SENDER
 		netif_receive_skb(con->skb);
 #else
@@ -398,7 +398,7 @@ void pepdna_con_i2r_work(struct work_struct *work)
 				break;
 
 			/* Tell fallocator in userspace to dealloc. the flow */
-			rc = pepdna_nl_sendmsg(0, 0, 0, 0, con->hash_conn_id,
+			rc = pepdna_nl_sendmsg(0, 0, 0, 0, con->id,
 					       atomic_read(&con->port_id), 0);
 			if (rc < 0)
 				pep_err("Couldn't initiate flow dealloc.");
@@ -420,7 +420,7 @@ void pepdna_con_r2i_work(struct work_struct *work)
 	while (rconnected(con)) {
 		if ((rc = pepdna_con_rina2i_fwd(con)) <= 0) {
 			if (rc == -EAGAIN) {
-				pep_debug("Flow is not readable %d", rc);
+				pep_dbg("Flow is not readable %d", rc);
 				cond_resched();
 			} else {
 				atomic_set(&con->rflag, 0);

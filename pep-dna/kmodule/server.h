@@ -27,8 +27,8 @@
 #define PEPDNA_HASH_BITS 9
 #define ETH_ALEN	 6
 #define MAX_CONNS        65535
-#define MAX_SDU_SIZE     1465
-#define MAX_BUF_SIZE     1465 * 3
+#define MAX_SDU_SIZE     1448
+#define MAX_BUF_SIZE     1448 * 10
 
 struct sock;
 struct nl_msg;

@@ -272,7 +272,7 @@ static unsigned int pepdna_pre_hook(void *priv, struct sk_buff *skb,
 				return NF_STOLEN;
 			} else {
 				if (skb->tstamp != con->ts) {
-					pep_debug("Dropping duplicate SYN");
+					pep_dbg("Dropping duplicate SYN");
 					return NF_DROP;
 				}
 			}
@@ -295,20 +295,20 @@ static unsigned int pepdna_pre_hook(void *priv, struct sk_buff *skb,
  * nodes (which can happen if interface is running in promiscuous mode).
  */
 static int pepdna_minip_skb_recv(struct sk_buff *skb, struct net_device *dev,
-			     struct packet_type *pt, struct net_device *orig_dev)
+				 struct packet_type *pt, struct net_device *orig_dev)
 {
-	rcu_read_lock();
-	if (pepdna_minip_skb_callback(skb)) {
-		pep_err("Error while receiving MINIP skb");
-		goto out;
-	}
-	rcu_read_unlock();
-	return NET_RX_SUCCESS;
+	if (!skb)
+		return NET_RX_DROP;
 
-out:
-	rcu_read_unlock();
-	kfree_skb(skb);
-	return NET_RX_DROP;
+	if (pepdna_minip_recv_packet(skb)) {
+		pep_dbg("SKB does not belong to any connection");
+
+		if (skb)
+			dev_kfree_skb_any(skb);
+		return NET_RX_DROP;
+	}
+
+	return NET_RX_SUCCESS;
 }
 #endif
 
@@ -432,7 +432,7 @@ static int pepdna_m2i_start(struct pepdna_server *srv)
 
 	minip.type = htons(ETH_P_MINIP);
 	/* FIXME */
-	minip.dev = dev_get_by_name (&init_net, ifname);
+	minip.dev = dev_get_by_name(&init_net, ifname);
 	minip.func = pepdna_minip_skb_recv;
 	dev_add_pack (&minip);
 
@@ -466,7 +466,7 @@ static int pepdna_i2m_start(struct pepdna_server *srv)
 
 	minip.type = htons(ETH_P_MINIP);
 	/* FIXME */
-	minip.dev = dev_get_by_name (&init_net, ifname);
+        minip.dev = dev_get_by_name(&init_net, ifname);
 	minip.func = pepdna_minip_skb_recv;
 	dev_add_pack (&minip);
 
@@ -537,7 +537,7 @@ static void init_pepdna_server(struct pepdna_server *srv)
 			pep_err("invalid MAC address of the peer pepdna");
 		}
                 else {
-			pep_debug("MAC address of the peer pepdna %s", macstr);
+			pep_dbg("MAC address of the peer pepdna %s", macstr);
 		}
         }
 #endif
@@ -634,11 +634,8 @@ void pepdna_server_stop(void)
 	if (pepdna_srv->mode < 4) {
 		nf_unregister_net_hooks(&init_net, pepdna_inet_nf_ops,
 					ARRAY_SIZE(pepdna_inet_nf_ops));
-	}
-	/* Remove the MINIP packet hook */
-#ifdef CONFIG_PEPDNA_MINIP
-		dev_remove_pack(&minip);
-#endif
+        }
+
 	/* 2. Check for connections which are still alive and destroy them */
 	if (atomic_read(&pepdna_srv->conns)) {
 		hlist_for_each_entry_safe(con, n, pepdna_srv->htable, hlist) {
@@ -647,7 +644,7 @@ void pepdna_server_stop(void)
 				atomic_read(&pepdna_srv->conns));
 			pepdna_con_close(con);
 		}
-	}
+		}
 	}
 
 	/* 3. Release main listening socket and Netlink socket */
@@ -657,7 +654,12 @@ void pepdna_server_stop(void)
 
 	/* 4. Flush and Destroy all works */
 	pepdna_work_stop(pepdna_srv);
+#ifdef CONFIG_PEPDNA_MINIP
+        /* Stop the timer */
 
+	/* Remove the MINIP packet hook */
+	dev_remove_pack(&minip);
+#endif
 	/* 5. kfree PEPDNA server struct */
 	kfree(pepdna_srv);
 	pepdna_srv = NULL;

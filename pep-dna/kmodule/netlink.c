@@ -19,7 +19,7 @@
 
 
 #include "netlink.h"
-#include "core.h"	 /* pep_debug */
+#include "core.h"	 /* pep_dbg */
 #include "server.h"	 /* nl_callbacks and server_mode enum */
 #ifdef CONFIG_PEPDNA_RINA
 #include "rina.h"
@@ -45,7 +45,7 @@ static void pepdna_nl_recv_msg(struct sk_buff *skb)
 	struct nl_msg *data  = NULL;
 
 	if (skb->len >= nlmsg_total_size(0)) {
-		pep_debug("receiving nl_msg from fallocator");
+		pep_dbg("receiving nl_msg from fallocator");
 
 		nlh = nlmsg_hdr(skb);
 		data = NULL;
@@ -70,7 +70,7 @@ static void pepdna_nl_recv_msg(struct sk_buff *skb)
 			break;
 #endif
 		default:
-			pep_debug("netlink not needed in this mode");
+			pep_dbg("netlink not needed in this mode");
 			break;
 		}
 	}
@@ -80,16 +80,16 @@ static void pepdna_nl_recv_msg(struct sk_buff *skb)
  * Send a message over a Netlink socket
  * ------------------------------------------------------------------------- */
 int pepdna_nl_sendmsg(__be32 saddr, __be16 source, __be32 daddr, __be16 dest,
-		      uint32_t conn_id, int port_id, bool alloc)
+					  uint32_t id, int port_id, bool alloc)
 {
 	struct sk_buff *skb  = NULL;
 	struct nlmsghdr *nlh = NULL;
-	void *data	     = NULL;
+	void *data	         = NULL;
 	struct nl_msg nlmsg  = {0};
 	int rc = 0, attempts = 0;
 
 retry:
-	pep_debug("sending nl_msg(%d) to fallocator", alloc);
+	pep_dbg("sending nl_msg(%d) to fallocator", alloc);
 	skb = alloc_skb(NLMSG_SPACE(NETLINK_MSS), GFP_ATOMIC);
 	if (!skb) {
 		pep_err("alloc_skb");
@@ -109,7 +109,7 @@ retry:
 	nlmsg.source = be16_to_cpu(source);
 	nlmsg.daddr  = be32_to_cpu(daddr);
 	nlmsg.dest   = be16_to_cpu(dest);
-	nlmsg.hash_conn_id = conn_id;
+	nlmsg.id     = id;
 	nlmsg.port_id = port_id;
 	nlmsg.alloc = alloc;
 
@@ -119,7 +119,7 @@ retry:
 	rc = netlink_unicast(nl_sock, skb, nl_port_id, MSG_DONTWAIT);
 	if (rc < 0) {
 		if (rc == -ECONNREFUSED && attempts++ < NL_SEND_RETRIES) {
-			pep_debug("Retrying (%d) netlink_unicast", attempts);
+			pep_dbg("Retrying (%d) netlink_unicast", attempts);
 			goto retry;
 		}
 		pep_err("netlink_unicast failed %d", rc);
@@ -161,6 +161,6 @@ void pepdna_netlink_stop(void)
 	if (nl_sock) {
 		netlink_kernel_release(nl_sock);
 		nl_sock = NULL;
-		pep_debug("netlink socket released");
+		pep_dbg("netlink socket released");
 	}
 }

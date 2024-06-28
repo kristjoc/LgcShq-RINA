@@ -181,7 +181,7 @@ void FlowAllocatorServer::ev_thread_fn(void *)
                 nlmsg.source = cstring_to_uint16(tokens[1].c_str());
                 nlmsg.daddr  = cstring_to_uint32(tokens[2].c_str());
                 nlmsg.dest   = cstring_to_uint16(tokens[3].c_str());
-                nlmsg.hash_conn_id = 0;
+                nlmsg.id = 0;
                 nlmsg.port_id = flowRequestEvent->portId;
                 nlmsg.alloc   = 1;
 
@@ -206,7 +206,7 @@ void FlowAllocatorServer::ev_thread_fn(void *)
                 int port_id = dynamic_cast<FlowDeallocatedEvent*>(event)->portId;
                 ipcManager->flowDeallocated(port_id);
                 LOG_DBG("Flow torn down remotely [port-id = %d]", port_id);
-                nlmsg.hash_conn_id = 0;
+                nlmsg.id = 0;
                 nlmsg.port_id = port_id;
 
                 if (netlink_send_data(nl_sock, &nlmsg) < 0) {

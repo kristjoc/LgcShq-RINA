@@ -52,7 +52,7 @@ int pepdna_con_i2i_fwd(struct socket *from, struct socket *to)
 		}
 	} else {
 		if (read == -EAGAIN || read == -EWOULDBLOCK)
-			pep_debug("kernel_recvmsg() returned %d", read);
+			pep_dbg("kernel_recvmsg() returned %d", read);
 	}
 
 	kfree(buffer);

@@ -48,7 +48,7 @@ static struct ctl_table sys_table[] = {
 int pepdna_register_sysctl(void)
 {
 	pepdna_ctl_hdr = register_net_sysctl(&init_net, "net/pepdna", sys_table);
-	if (pepdna_ctl_hdr == NULL)
+	if (!pepdna_ctl_hdr)
 		return -ENOMEM;
 
 	return 0;

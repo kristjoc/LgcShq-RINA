@@ -48,7 +48,7 @@ struct nl_msg {
     uint16_t source;
     uint32_t daddr;
     uint16_t dest;
-    uint32_t hash_conn_id;
+    uint32_t id;
     int port_id;
     bool alloc;
 } __attribute__((packed));
