@@ -3,6 +3,8 @@
 tags
 Makefile
 
+**.DS_Store
+
 /include/.autotools
 /include/.cproject
 /include/.project
