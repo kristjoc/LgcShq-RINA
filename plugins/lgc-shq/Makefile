@@ -28,7 +28,7 @@ clean:
 
 install:
 	$(MAKE) -C $(KDIR) M=$$PWD modules_install
-	cp lgcshq-plugin.manifest /lib/modules/$(KREL)/extra/
+	cp lgcshq-plugin.manifest /lib/modules/$(KREL)/updates/
 	depmod -a
 
 uninstall:

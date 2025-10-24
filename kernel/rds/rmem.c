@@ -315,11 +315,22 @@ static void * generic_alloc(void * (* alloc_func)(size_t size, gfp_t flags),
         return ptr;
 }
 
+/* Wrapper functions for newer kernels */
+static void *kmalloc_wrapper(size_t size, gfp_t flags)
+{
+	return kmalloc(size, flags);
+}
+
+static void *kzalloc_wrapper(size_t size, gfp_t flags)
+{
+	return kzalloc(size, flags);
+}
+
 void * rkmalloc(size_t size, gfp_t flags)
 {
         void * ptr;
 
-        ptr = generic_alloc(kmalloc, size, flags);
+        ptr = generic_alloc(kmalloc_wrapper, size, flags);
 #ifdef CONFIG_RINA_MEMORY_POISONING
         if (ptr)
                 poison(ptr, size);
@@ -329,7 +340,7 @@ void * rkmalloc(size_t size, gfp_t flags)
 EXPORT_SYMBOL(rkmalloc);
 
 void * rkzalloc(size_t size, gfp_t flags)
-{ 	return generic_alloc(kzalloc, size, flags); }
+{ 	return generic_alloc(kzalloc_wrapper, size, flags); }
 EXPORT_SYMBOL(rkzalloc);
 
 #ifdef CONFIG_RINA_MEMORY_TAMPERING

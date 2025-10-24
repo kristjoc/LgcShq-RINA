@@ -27,7 +27,7 @@ clean:
 
 install:
 	$(MAKE) -C $(KDIR) M=$$PWD modules_install
-	cp pff-multipath.manifest /lib/modules/$(KREL)/extra/
+	cp pff-multipath.manifest /lib/modules/$(KREL)/updates/
 	depmod -a
 
 uninstall:

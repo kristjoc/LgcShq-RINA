@@ -107,7 +107,7 @@ struct pft_entry {
 static unsigned int pffb_flow_timeout = PFFB_TIMEOUT;
 
 /* Full renew when a flow expires?
-static unsigned int pffb_full_renew = 0;
+   static unsigned int pffb_full_renew = 0;
  */
 
 /* Flow distribution strategy? */
@@ -116,7 +116,7 @@ static int pffb_distr = PFFB_RAND_DIST;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5,5,0)
 static struct timespec pffb_load = {0};
 #else
-static struct timespec64 pffb_load = {0};
+	static struct timespec64 pffb_load = {0};
 #endif
 
 #define PFFB_NOP 64
@@ -135,21 +135,21 @@ struct kobject pffb_obj;
 struct pffb_attribute {
 	struct attribute attr;
 	ssize_t (* show)(
-		struct kobject * kobj,
-		struct attribute * attr,
-		char * buf);
+			 struct kobject * kobj,
+			 struct attribute * attr,
+			 char * buf);
 	ssize_t (* store)(
-		struct kobject * foo,
-		struct attribute * attr,
-		const char * buf,
-		size_t count);
+			  struct kobject * foo,
+			  struct attribute * attr,
+			  const char * buf,
+			  size_t count);
 };
 
 /* Show procedure! */
 static ssize_t pffb_attr_show(
-	struct kobject * kobj,
-	struct attribute * attr,
-	char * buf) {
+			      struct kobject * kobj,
+			      struct attribute * attr,
+			      char * buf) {
 
 	if(strcmp(attr->name, "fwd_type") == 0) {
 		return snprintf(buf, PAGE_SIZE, "%u\n", pffb_distr);
@@ -160,16 +160,16 @@ static ssize_t pffb_attr_show(
 
 /* Store procedure! */
 static ssize_t pffb_attr_store(
-	struct kobject * kobj,
-	struct attribute * attr,
-	const char * buf,
-	size_t count) {
+			       struct kobject * kobj,
+			       struct attribute * attr,
+			       const char * buf,
+			       size_t count) {
 
 	int ft = 0;
 	int op = 0;
 
         /* Cleanup must happens before using a different strategy!
-        pffb_cleanup = 1;
+           pffb_cleanup = 1;
          */
 
 	if(strcmp(attr->name, "fwd_type") == 0) {
@@ -185,9 +185,9 @@ static ssize_t pffb_attr_store(
 	}
 
 	/* Renew the infos here...
-	if(pffb_distr == PFFB_NOF_DIST) {
-		memset(pffb_flows, 0, sizeof(unsigned int) * PFFB_NOP);
-	}
+	   if(pffb_distr == PFFB_NOF_DIST) {
+	   memset(pffb_flows, 0, sizeof(unsigned int) * PFFB_NOP);
+	   }
 	 */
 
 	return count;
@@ -216,11 +216,22 @@ static void pffb_release(struct kobject *kobj) {
 	/* Nothing... */
 }
 
+// Define an attribute group for your attributes
+static struct attribute_group pffb_attr_group = {
+	.attrs = pffb_attrs,
+};
+
+// Create an array of attribute groups (NULL terminated)
+static const struct attribute_group *pffb_attr_groups[] = {
+	&pffb_attr_group,
+	NULL,
+};
+
 /* Master PFFB ktype, different for the type of shown attributes. */
 static struct kobj_type pffb_ktype = {
 	.sysfs_ops = &pffb_sysfs_ops,
 	.release = pffb_release,
-	.default_attrs = pffb_attrs,
+	.default_groups = pffb_attr_groups,
 };
 /*
  * Port-status related:
@@ -232,7 +243,7 @@ static inline unsigned long pffb_to_ms(struct timespec * t) {
 #else
 static inline unsigned long pffb_to_ms(struct timespec64 * t) {
 #endif
-	return (t->tv_sec * 1000) + (t->tv_nsec / 1000000);
+return (t->tv_sec * 1000) + (t->tv_nsec / 1000000);
 }
 
 /* Just remove the entry... */
@@ -243,15 +254,15 @@ static void __pffb_rem_flow(struct flow_info * f) {
 
 /* Remove a flow entry with a little logic. */
 static void pffb_rem_flow(
-	struct pft_port_entry * port_e,
-	struct flow_info * flow) {
+			  struct pft_port_entry * port_e,
+			  struct flow_info * flow) {
 
 	if(pffb_distr == PFFB_NOF_DIST) {
 		pffb_flows[flow->port_id] -= flow->rate;
 	}
 
 	LOG_INFO("PFFBI > %x expired on port %d, remains %d",
-		flow->key, flow->port_id, pffb_flows[flow->port_id]);
+		 flow->key, flow->port_id, pffb_flows[flow->port_id]);
 
 	__pffb_rem_flow(flow);
 
@@ -262,8 +273,8 @@ static void pffb_rem_flow(
  * Returns -1 if the flow has not found (and so is new).
  */
 static struct pft_port_entry * pffb_find_key(
-	unsigned short key,
-	struct pft_entry * entry) {
+					     unsigned short key,
+					     struct pft_entry * entry) {
 
 	struct pft_port_entry * p = 0;
 	struct flow_info * f = 0;
@@ -285,32 +296,32 @@ static struct pft_port_entry * pffb_find_key(
 #endif
 
 		list_for_each_entry_safe(f, t, &pffb_flows_info, next) {
-			if(pffb_to_ms(&now) -
-				pffb_to_ms(&f->la) >
-				pffb_flow_timeout) {
+		if(pffb_to_ms(&now) -
+		   pffb_to_ms(&f->la) >
+		   pffb_flow_timeout) {
 
-				LOG_INFO("PFFBI > %x expired!", f->key);
-				pffb_rem_flow(p, f);
-			}
-
-			if(f->key == key) {
-				f->la.tv_sec  = now.tv_sec;
-				f->la.tv_nsec = now.tv_nsec;
-
-				pid = f->port_id;
-				break;
-			}
+			LOG_INFO("PFFBI > %x expired!", f->key);
+			pffb_rem_flow(p, f);
 		}
+
+		if(f->key == key) {
+			f->la.tv_sec  = now.tv_sec;
+			f->la.tv_nsec = now.tv_nsec;
+
+			pid = f->port_id;
+			break;
+		}
+	}
 
 		if(pid == -1) {
 			return 0;
 		}
 
 		list_for_each_entry(p, &entry->ports, next) {
-			if(p->port_id == pid) {
-				return p;
-			}
+		if(p->port_id == pid) {
+			return p;
 		}
+	}
 		break;
 	}
 
@@ -318,10 +329,10 @@ static struct pft_port_entry * pffb_find_key(
 }
 
 static struct pft_port_entry * pffb_add_key(
-	unsigned short key,
-	unsigned int rate,
-	struct pft_entry * entry,
-	struct flow_info ** fi) {
+					    unsigned short key,
+					    unsigned int rate,
+					    struct pft_entry * entry,
+					    struct flow_info ** fi) {
 
 	struct flow_info * f = 0;
 	struct pft_port_entry * p = 0;
@@ -336,7 +347,7 @@ static struct pft_port_entry * pffb_add_key(
 	int t = INT_MAX;
 
 	switch(pffb_distr) {
-	/* "Pick a random port" distribution. */
+		/* "Pick a random port" distribution. */
 	case PFFB_RAND_DIST:
 		f = rkzalloc(sizeof(struct flow_info), GFP_KERNEL);
 
@@ -360,8 +371,8 @@ static struct pft_port_entry * pffb_add_key(
 
 		t = 0;
 		list_for_each_entry(p, &entry->ports, next) {
-			t++;
-		}
+		t++;
+	}
 
 		LOG_INFO("PFFBI Rnd=%u, ports=%u, index=%u", rnd, t, rnd % t);
 
@@ -371,12 +382,12 @@ static struct pft_port_entry * pffb_add_key(
 		/* Select the port. */
 		t = 0;
 		list_for_each_entry(p, &entry->ports, next) {
-			if(t == rnd) {
-				r = p;
-			}
-
-			t++;
+		if(t == rnd) {
+			r = p;
 		}
+
+		t++;
+	}
 
 		if(!r) {
 			LOG_ERR("Next port NOT selected, %u", rnd);
@@ -390,17 +401,17 @@ static struct pft_port_entry * pffb_add_key(
 
 		return r;
 
-	/* Default is the NOF distribution. */
+		/* Default is the NOF distribution. */
 	default:
 		/* Select the less 'used' one, whatever used means to you... */
 		list_for_each_entry(p, &entry->ports, next) {
-			if(p->port_id < PFFB_NOP && p->port_id > 0) {
-				if(pffb_flows[p->port_id] < t) {
-					t = pffb_flows[p->port_id];
-					r = p;
-				}
+		if(p->port_id < PFFB_NOP && p->port_id > 0) {
+			if(pffb_flows[p->port_id] < t) {
+				t = pffb_flows[p->port_id];
+				r = p;
 			}
 		}
+	}
 
 		f = rkzalloc(sizeof(struct flow_info), GFP_KERNEL);
 
@@ -443,7 +454,7 @@ static struct pft_port_entry * pffb_add_key(
 
 /* Create a new port entry... with flags... */
 static struct pft_port_entry * pft_pe_create_gfp(
-	gfp_t flags, port_id_t port_id) {
+						 gfp_t flags, port_id_t port_id) {
 
 	struct pft_port_entry * tmp = 0;
 
@@ -472,7 +483,7 @@ static void pft_pe_destroy(struct pft_port_entry * pe) {
 
 /* Returns brand new, initialized, entry... with flags... */
 static struct pft_entry * pfte_create_gfp(
-	gfp_t flags, address_t destination, qos_id_t qos_id) {
+					  gfp_t flags, address_t destination, qos_id_t qos_id) {
 
 	struct pft_entry * tmp = 0;
 
@@ -494,7 +505,7 @@ static struct pft_entry * pfte_create_gfp(
 
 /* Returns brand new, initialized, entry. */
 static struct pft_entry * pfte_create_ni(
-	address_t destination, qos_id_t qos_id) {
+					 address_t destination, qos_id_t qos_id) {
 
 	return pfte_create_gfp(GFP_ATOMIC, destination, qos_id);
 }
@@ -510,8 +521,8 @@ static void pfte_destroy(struct pft_entry * entry) {
         }
 
         list_for_each_entry_safe(pos, next, &entry->ports, next) {
-                pft_pe_destroy(pos);
-        }
+        pft_pe_destroy(pos);
+}
 
         list_del(&entry->next);
         rkfree(entry);
@@ -519,15 +530,15 @@ static void pfte_destroy(struct pft_entry * entry) {
 
 /* Find da port. */
 static struct pft_port_entry * pfte_port_find(
-	struct pft_entry * entry, port_id_t id) {
+					      struct pft_entry * entry, port_id_t id) {
 
 	struct pft_port_entry * pos = 0;
 
         list_for_each_entry(pos, &entry->ports, next) {
-                if (pos->port_id == id) {
-                        return pos;
-                }
+        if (pos->port_id == id) {
+                return pos;
         }
+}
 
         return NULL;
 }
@@ -564,11 +575,11 @@ static void pfte_port_remove(struct pft_entry * entry, port_id_t id) {
         }
 
         list_for_each_entry_safe(pos, next, &entry->ports, next) {
-                if (pos->port_id == id) {
-                        pft_pe_destroy(pos);
-                        return;
-                }
+        if (pos->port_id == id) {
+                pft_pe_destroy(pos);
+                return;
         }
+}
 
 }
 
@@ -576,9 +587,9 @@ static void pfte_port_remove(struct pft_entry * entry, port_id_t id) {
  * one.
  */
 static int pfte_ports_copy(
-	struct  pft_port_entry * port,
-	port_id_t ** port_ids,
-	size_t * entries) {
+			   struct  pft_port_entry * port,
+			   port_id_t ** port_ids,
+			   size_t * entries) {
 
         size_t	count = 1;
 
@@ -594,7 +605,7 @@ static int pfte_ports_copy(
 
                 if (count > 0) {
                         *port_ids = rkmalloc(
-				sizeof(port_id_t) * count, GFP_ATOMIC);
+					     sizeof(port_id_t) * count, GFP_ATOMIC);
 
                         if (!*port_ids) {
                                 *entries = 0;
@@ -612,9 +623,9 @@ static int pfte_ports_copy(
 
 /* Finds an entry starting from its address and qos... */
 static struct pft_entry * pft_find(
-	struct pff_ps_priv * priv,
-	address_t destination,
-	qos_id_t qos_id) {
+				   struct pff_ps_priv * priv,
+				   address_t destination,
+				   qos_id_t qos_id) {
 
         struct pft_entry * pos = 0;
 
@@ -624,13 +635,13 @@ static struct pft_entry * pft_find(
         }
 
         list_for_each_entry(pos, &priv->entries, next) {
-		if ((pos->destination == destination) &&
-                    (pos->qos_id == qos_id)) {
+	if ((pos->destination == destination) &&
+            (pos->qos_id == qos_id)) {
 
-			LOG_DBG("Match found!");
-			return pos;
-                }
+		LOG_DBG("Match found!");
+		return pos;
         }
+}
 	
         return NULL;
 }
@@ -644,13 +655,13 @@ static void pft_do_flush(struct pff_ps_priv * priv) {
         struct flow_info * t = 0;
 
         list_for_each_entry_safe(f, t, &pffb_flows_info, next) {
-		list_del(&f->next);
-		rkfree(f);
-	}
+	list_del(&f->next);
+	rkfree(f);
+}
 
         list_for_each_entry_safe(pos, next, &priv->entries, next) {
-                pfte_destroy(pos);
-        }
+        pfte_destroy(pos);
+}
 }
 
 /* Adds an entry... */
@@ -693,17 +704,17 @@ static int pffb_add(struct pff_ps * ps, struct mod_pff_entry * entry) {
         }
 
 	list_for_each_entry(alts, &entry->port_id_altlists, next) {
-		if (alts->num_ports < 1) {
-			LOG_INFO("Port id alternative set is empty");
-			continue;
-		}
-
-                if (pfte_port_add(tmp, alts->ports[0])) {
-                        pfte_destroy(tmp);
-                        spin_unlock(&priv->lock);
-                        return -1;
-                }
+	if (alts->num_ports < 1) {
+		LOG_INFO("Port id alternative set is empty");
+		continue;
 	}
+
+        if (pfte_port_add(tmp, alts->ports[0])) {
+                pfte_destroy(tmp);
+                spin_unlock(&priv->lock);
+                return -1;
+        }
+}
 
         spin_unlock(&priv->lock);
 
@@ -746,14 +757,14 @@ static int pffb_remove(struct pff_ps * ps, struct mod_pff_entry * entry) {
         }
 
 	list_for_each_entry(alts, &entry->port_id_altlists, next) {
-		if (alts->num_ports < 1) {
-			LOG_INFO("Port id alternative set is empty");
-			continue;
-		}
-
-		/* Just the first is used by now... */
-		pfte_port_remove(tmp, alts->ports[0]);
+	if (alts->num_ports < 1) {
+		LOG_INFO("Port id alternative set is empty");
+		continue;
 	}
+
+	/* Just the first is used by now... */
+	pfte_port_remove(tmp, alts->ports[0]);
+}
 
         if (list_empty(&tmp->ports)) {
                 pfte_destroy(tmp);
@@ -800,7 +811,7 @@ static int pffb_flush(struct pff_ps * ps) {
 
 /* Select the right entry for the next hop alternatives. */
 struct pft_port_entry * pffb_select_entry(
-	struct pft_entry * entry, struct pci * pci, struct pff_ps_priv * priv) {
+					  struct pft_entry * entry, struct pci * pci, struct pff_ps_priv * priv) {
 
 	struct pft_port_entry * ret = 0;
 	unsigned short key = 0;
@@ -844,22 +855,22 @@ struct pft_port_entry * pffb_select_entry(
 			}
 
 			LOG_INFO("PFFBI > (%d-%u <--> %d-%u, qos:%d), "
-				"hash=%x, "
-				"isM?=%d, "
-				"on=%lu.%lu, "
-				"port=%d, "
-				"flows=%d",
-				c_id.pci_source,
-				c_id.pci_cep_source,
-				c_id.pci_destination,
-				c_id.pci_cep_destination,
-				entry->qos_id,
-				key,
-				m,
-				fi->la.tv_sec - pffb_load.tv_sec,
-				fi->la.tv_nsec / 1000000,
-				ret->port_id,
-				pffb_flows[ret->port_id]);
+				 "hash=%x, "
+				 "isM?=%d, "
+				 "on=%lu.%lu, "
+				 "port=%d, "
+				 "flows=%d",
+				 c_id.pci_source,
+				 c_id.pci_cep_source,
+				 c_id.pci_destination,
+				 c_id.pci_cep_destination,
+				 entry->qos_id,
+				 key,
+				 m,
+				 fi->la.tv_sec - pffb_load.tv_sec,
+				 fi->la.tv_nsec / 1000000,
+				 ret->port_id,
+				 pffb_flows[ret->port_id]);
 		}
 	}
 
@@ -869,10 +880,10 @@ out:
 
 /* Select the next hop for a certain PDU. */
 static int pffb_next_hop(
-	struct pff_ps * ps,
-	struct pci * pci,
-	port_id_t ** ports,
-	size_t * count) {
+			 struct pff_ps * ps,
+			 struct pci * pci,
+			 port_id_t ** ports,
+			 size_t * count) {
 
         address_t destination = -1;
         qos_id_t qos_id = -1;
@@ -944,33 +955,33 @@ static int pffb_next_hop(
 
 /* Copies the port alternative list. */
 static int pfte_copy_alts(
-	struct pft_entry * entry, struct list_head * port_id_altlists) {
+			  struct pft_entry * entry, struct list_head * port_id_altlists) {
 
 	struct pft_port_entry * pos = 0;
 	struct port_id_altlist * alt = 0;
 	int cnt = 1;
 
         list_for_each_entry(pos, &entry->ports, next) {
-		alt = rkmalloc(sizeof(*alt), GFP_ATOMIC);
+	alt = rkmalloc(sizeof(*alt), GFP_ATOMIC);
 
-		if (!alt) {
-			LOG_ERR("No more memory!");
-			return -1;
-		}
+	if (!alt) {
+		LOG_ERR("No more memory!");
+		return -1;
+	}
 
-		alt->ports = rkmalloc(cnt * sizeof(*(alt->ports)), GFP_ATOMIC);
+	alt->ports = rkmalloc(cnt * sizeof(*(alt->ports)), GFP_ATOMIC);
 
-		if (!alt->ports) {
-			LOG_ERR("No more memory!");
-			rkfree(alt);
-			return -1;
-		}
+	if (!alt->ports) {
+		LOG_ERR("No more memory!");
+		rkfree(alt);
+		return -1;
+	}
 
-		alt->ports[0]  = pos->port_id;
-		alt->num_ports = cnt;
+	alt->ports[0]  = pos->port_id;
+	alt->num_ports = cnt;
 
-		list_add_tail(&alt->next, port_id_altlists);
-        }
+	list_add_tail(&alt->next, port_id_altlists);
+}
 
         return 0;
 }
@@ -990,26 +1001,26 @@ static int pffb_dump(struct pff_ps * ps, struct list_head * entries) {
 
         spin_lock(&priv->lock);
         list_for_each_entry(pos, &priv->entries, next) {
-                entry = rkmalloc(sizeof(*entry), GFP_ATOMIC);
+        entry = rkmalloc(sizeof(*entry), GFP_ATOMIC);
 
-                if (!entry) {
-                	LOG_ERR("No more memory!");
-                        spin_unlock(&priv->lock);
-                        return -1;
-                }
-
-                entry->fwd_info = pos->destination;
-                entry->qos_id = pos->qos_id;
-		INIT_LIST_HEAD(&entry->port_id_altlists);
-
-                if (pfte_copy_alts(pos, &entry->port_id_altlists)) {
-                        rkfree(entry);
-                        spin_unlock(&priv->lock);
-                        return -1;
-                }
-
-                list_add(&entry->next, entries);
+        if (!entry) {
+                LOG_ERR("No more memory!");
+                spin_unlock(&priv->lock);
+                return -1;
         }
+
+        entry->fwd_info = pos->destination;
+        entry->qos_id = pos->qos_id;
+	INIT_LIST_HEAD(&entry->port_id_altlists);
+
+        if (pfte_copy_alts(pos, &entry->port_id_altlists)) {
+                rkfree(entry);
+                spin_unlock(&priv->lock);
+                return -1;
+        }
+
+        list_add(&entry->next, entries);
+}
         spin_unlock(&priv->lock);
 
         return 0;
@@ -1017,11 +1028,11 @@ static int pffb_dump(struct pff_ps * ps, struct list_head * entries) {
 
 /* NOTE: This is skeleton code that was directly copy pasted */
 static int pffb_set_param(
-	struct ps_base * bps, const char * name, const char * value) {
+			  struct ps_base * bps, const char * name, const char * value) {
 
 	/*
-        struct pff_ps * ps = container_of(bps, struct pff_ps, base);
-        struct pff_ps_priv * priv = ps->priv;
+          struct pff_ps * ps = container_of(bps, struct pff_ps, base);
+          struct pff_ps_priv * priv = ps->priv;
 	 */
 
         if (!name || !value) {

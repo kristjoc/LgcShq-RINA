@@ -117,7 +117,7 @@ static bool should_mark(u64 prob)
         u64 rand = 0ULL;
 
         /* Generate a 4 byte = 32-bit random number and store it in u64 */
-        prandom_bytes(&rand, 4);
+        get_random_bytes(&rand, 4);
 
         if (rand < prob)
                 return true;

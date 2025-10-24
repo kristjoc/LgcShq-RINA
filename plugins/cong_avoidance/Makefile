@@ -26,7 +26,7 @@ clean:
 
 install:
 	$(MAKE) -C $(KDIR) M=$$PWD modules_install
-	cp cas-plugin.manifest /lib/modules/$(KREL)/extra/
+	cp cas-plugin.manifest /lib/modules/$(KREL)/updates/
 	depmod -a
 
 uninstall:

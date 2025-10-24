@@ -93,21 +93,21 @@ struct kobject cdrr_obj;
 struct cdrr_attribute {
 	struct attribute attr;
 	ssize_t (* show)(
-		struct kobject * kobj,
-		struct attribute * attr,
-		char * buf);
+			 struct kobject * kobj,
+			 struct attribute * attr,
+			 char * buf);
 	ssize_t (* store)(
-		struct kobject * foo,
-		struct attribute * attr,
-		const char * buf,
-		size_t count);
+			  struct kobject * foo,
+			  struct attribute * attr,
+			  const char * buf,
+			  size_t count);
 };
 
 /* Show procedure! */
 static ssize_t cdrr_attr_show(
-	struct kobject * kobj,
-	struct attribute * attr,
-	char * buf) {
+			      struct kobject * kobj,
+			      struct attribute * attr,
+			      char * buf) {
 
 	struct cdrr_rate_info * ri = 0;
 
@@ -117,12 +117,12 @@ static ssize_t cdrr_attr_show(
 
 	if(strcmp(attr->name, "link_limit") == 0) {
 		return snprintf(
-			buf, PAGE_SIZE, "%u\n", cdrr_link_rate);
+				buf, PAGE_SIZE, "%u\n", cdrr_link_rate);
 	}
 
 	if(strcmp(attr->name, "mode") == 0) {
 		return snprintf(
-			buf, PAGE_SIZE, "%u\n", cdrr_mode);
+				buf, PAGE_SIZE, "%u\n", cdrr_mode);
 	}
 
 	/*
@@ -162,7 +162,7 @@ static ssize_t cdrr_attr_show(
 	if(strcmp(attr->name, "current_rate") == 0) {
 		ri = container_of(kobj, struct cdrr_rate_info, robj);
 		return snprintf(
-			buf, PAGE_SIZE, "%u\n", ri->dtcp->sv->sndr_rate);
+				buf, PAGE_SIZE, "%u\n", ri->dtcp->sv->sndr_rate);
 	}
 
 	return 0;
@@ -170,10 +170,10 @@ static ssize_t cdrr_attr_show(
 
 /* Store procedure! */
 static ssize_t cdrr_attr_store(
-	struct kobject * kobj,
-	struct attribute * attr,
-	const char * buf,
-	size_t count) {
+			       struct kobject * kobj,
+			       struct attribute * attr,
+			       const char * buf,
+			       size_t count) {
 
 	int op = 0;
 	int l = 0;
@@ -287,18 +287,38 @@ static void cdrr_release(struct kobject *kobj) {
 	/* Nothing... */
 }
 
+// Define an attribute group for your attributes
+static struct attribute_group cdrr_attr_group = {
+	.attrs = cdrr_attrs,
+};
+
+// Create an array of attribute groups (NULL terminated)
+static const struct attribute_group *cdrr_attr_groups[] = {
+	&cdrr_attr_group,
+	NULL,
+};
+
 /* Master CDRR ktype, different for the type of shown attributes. */
 static struct kobj_type cdrr_ktype = {
 	.sysfs_ops = &cdrr_sysfs_ops,
 	.release = cdrr_release,
-	.default_attrs = cdrr_attrs,
+	.default_groups = cdrr_attr_groups,
+};
+
+static struct attribute_group cdrr_dtcp_attr_group = {
+	.attrs = cdrr_dtcp_attrs,
+};
+
+static const struct attribute_group *cdrr_dtcp_attr_groups[] = {
+	&cdrr_dtcp_attr_group,
+	NULL,
 };
 
 /* DTCP CDRR ktype, different for the type of shown attributes. */
 static struct kobj_type cdrr_dtcp_ktype = {
 	.sysfs_ops = &cdrr_sysfs_ops,
 	.release = cdrr_release,
-	.default_attrs = cdrr_dtcp_attrs,
+	.default_groups = cdrr_dtcp_attr_groups,
 };
 
 /*
@@ -309,7 +329,7 @@ static inline unsigned long cdrr_to_ms(struct timespec * t) {
 #else
 static inline unsigned long cdrr_to_ms(struct timespec64 * t) {
 #endif
-	return (t->tv_sec * 1000) + (t->tv_nsec / 1000000);
+return (t->tv_sec * 1000) + (t->tv_nsec / 1000000);
 }
 
 static int cdrr_send_control(struct dtcp * dtcp) {
@@ -320,7 +340,7 @@ static int cdrr_send_control(struct dtcp * dtcp) {
 	}
 
 	if (dtcp_pdu_send(dtcp, du)) {
-	       return -1;
+		return -1;
 	}
 
 	return 0;
@@ -428,7 +448,7 @@ static int cdrr_rate_reduction(struct dtcp_ps * ps, const struct pci * pci) {
 }
 
 static int cdrr_param(
-	struct ps_base * bps, const char * name, const char * value) {
+		      struct ps_base * bps, const char * name, const char * value) {
 
 	struct dtcp_ps * ps = container_of(bps, struct dtcp_ps, base);
 	struct cdrr_rate_info * ri = ps->priv;
@@ -485,7 +505,7 @@ static struct ps_base * cdrr_create(struct rina_component * component) {
 #endif
 #ifdef CONFIG_RINA_DTCP_RCVR_ACK_ATIMER
         ps->rcvr_ack                    = NULL,
-#endif
+	#endif
         ps->rcvr_flow_control           = NULL;
         ps->rate_reduction              = cdrr_rate_reduction;
         ps->rcvr_control_ack            = NULL;
@@ -519,7 +539,7 @@ static struct ps_base * cdrr_create(struct rina_component * component) {
 #endif
 
         if(kobject_init_and_add(
-		&ri->robj, &cdrr_dtcp_ktype, &cdrr_kobj, "%pK", dtcp)) {
+				&ri->robj, &cdrr_dtcp_ktype, &cdrr_kobj, "%pK", dtcp)) {
 
         	LOG_ERR("Failed to create sysfs for dtcp 0x%pK", dtcp);
 
@@ -529,14 +549,14 @@ static struct ps_base * cdrr_create(struct rina_component * component) {
         }
 
         LOG_INFO("CDRRI > New DTCP, "
-		"dtcp: %pK, "
-		"mgb: %u, "
-		"time frame: %u msec, "
-		"reset rate: %u, ",
-		ri->dtcp,
-		ri->mgb,
-		ri->time_frame,
-		ri->reset_rate);
+		 "dtcp: %pK, "
+		 "mgb: %u, "
+		 "time frame: %u msec, "
+		 "reset rate: %u, ",
+		 ri->dtcp,
+		 ri->mgb,
+		 ri->time_frame,
+		 ri->reset_rate);
 
         return &ps->base;
 }

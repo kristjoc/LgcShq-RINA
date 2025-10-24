@@ -27,7 +27,7 @@ clean:
 
 install:
 	$(MAKE) -C $(KDIR) M=$$PWD modules_install
-	cp red-plugin.manifest /lib/modules/$(KREL)/extra/
+	cp red-plugin.manifest /lib/modules/$(KREL)/updates/
 	depmod -a
 
 uninstall:

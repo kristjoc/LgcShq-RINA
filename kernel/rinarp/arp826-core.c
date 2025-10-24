@@ -24,6 +24,7 @@
 #include <linux/kernel.h>
 #include <linux/skbuff.h>
 #include <linux/netdevice.h>
+#include <linux/rtnetlink.h>
 #include <linux/slab.h>
 #include <linux/list.h>
 #include <linux/if_ether.h>
@@ -389,14 +390,14 @@ static void __exit mod_exit(void)
         dev_remove_pack(&arp826_packet_type);
 
         /* FIXME: Replace with net-devices even-based behavior */
-        read_lock(&dev_base_lock);
-        device = first_net_device(&init_net);
+        rtnl_lock();
+	device = first_net_device(&init_net);
         while (device) {
                 protocol_remove(device, ETH_P_RINA);
 
                 device = next_net_device(device);
         }
-        read_unlock(&dev_base_lock);
+        rtnl_unlock();
 
         arm_fini();
         tbls_fini();

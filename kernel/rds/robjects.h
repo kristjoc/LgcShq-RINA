@@ -125,6 +125,16 @@ static const struct sysfs_ops COMP_NAME##_sysfs_ops = {			\
         .show = COMP_NAME##_sysfs_show					\
 };
 
+/* Helper to build attribute groups from the existing attrs array */
+#define RINA_DECLARE_GROUPS(COMP_NAME)                                 \
+    static const struct attribute_group COMP_NAME##_attr_group = {      \
+        .attrs = COMP_NAME##_attrs,                                     \
+	};                                                              \
+	static const struct attribute_group *COMP_NAME##_groups[] = {   \
+        &COMP_NAME##_attr_group,                                        \
+        NULL,                                                           \
+	}
+
 #define _ADD_KTYPE_ATTR(COMP_NAME, ATTR_NAME) 				\
 	&ATTR_NAME##_attr.kattr.attr,
 
@@ -138,15 +148,25 @@ static const struct sysfs_ops COMP_NAME##_sysfs_ops = {			\
 	_CALL_FOR_EACH(_ADD_KTYPE_ATTR, COMP_NAME, ##__VA_ARGS__)	\
 	NULL, };
 
-/* Declares the robj_type object for the component */
-#define RINA_KTYPE(COMP_NAME)						\
-	static struct robj_type COMP_NAME##_rtype = {			\
-		.ktype = {						\
-	        	.sysfs_ops     = &COMP_NAME##_sysfs_ops,	\
-	        	.default_attrs = COMP_NAME##_attrs,		\
-	        	.release       = NULL,				\
-		}							\
-	};
+#define RINA_KTYPE(COMP_NAME)                                           \
+    RINA_DECLARE_GROUPS(COMP_NAME);                                     \
+	static struct robj_type COMP_NAME##_rtype = {                   \
+        .ktype = {                                                      \
+        .sysfs_ops      = &COMP_NAME##_sysfs_ops,                       \
+        .default_groups = COMP_NAME##_groups,                           \
+        .release        = NULL,                                         \
+        },                                                              \
+	}
+
+/* /\* Declares the robj_type object for the component *\/ */
+/* #define RINA_KTYPE(COMP_NAME)						\ */
+/* 	static struct robj_type COMP_NAME##_rtype = {			\ */
+/* 		.ktype = {						\ */
+/* 	        	.sysfs_ops     = &COMP_NAME##_sysfs_ops,	\ */
+/* 	        	.default_attrs = COMP_NAME##_attrs,		\ */
+/* 	        	.release       = NULL,				\ */
+/* 		}							\ */
+/* 	}; */
 
 /* Declares an empty robj_type object for the component. No sysfs_ops nor
  * default_attrs initialized*/

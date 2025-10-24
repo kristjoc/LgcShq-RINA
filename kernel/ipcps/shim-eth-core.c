@@ -210,124 +210,124 @@ struct interface_data_mapping {
 #if 0
 static int eth_shim_dbg_inst_info_show(struct seq_file *s, void *v)
 {
-        char *ns;
-        struct ipcp_instance_data *data;
+	char *ns;
+	struct ipcp_instance_data *data;
 
-        data = (struct ipcp_instance_data *)s->private;
+	data = (struct ipcp_instance_data *)s->private;
 
-        seq_printf(s, "IPCP Id: %d\n", data->id);
+	seq_printf(s, "IPCP Id: %d\n", data->id);
 
-        ns = name_tostring(data->name);
-        if (ns) {
-                seq_printf(s, "IPCP Name: %s\n", ns);
-                rkfree(ns);
-        } else
-                seq_printf(s, "IPCP Name: Unknown\n");
+	ns = name_tostring(data->name);
+	if (ns) {
+		seq_printf(s, "IPCP Name: %s\n", ns);
+		rkfree(ns);
+	} else
+		seq_printf(s, "IPCP Name: Unknown\n");
 
-        ns = name_tostring(data->dif_name);
-        if (ns) {
-                seq_printf(s, "IPCP DIF Name: %s\n", ns);
-                rkfree(ns);
-        } else
-                seq_printf(s, "IPCP DIF Name: Unknown\n");
+	ns = name_tostring(data->dif_name);
+	if (ns) {
+		seq_printf(s, "IPCP DIF Name: %s\n", ns);
+		rkfree(ns);
+	} else
+		seq_printf(s, "IPCP DIF Name: Unknown\n");
 
-        if (data->vlan_mode == VLAN_MODE_COMPAT)
-                seq_printf(s, "Working in eth-vlan compatibility mode.\n");
-        else
-                seq_printf(s, "Working in automatic interface mode.\n");
+	if (data->vlan_mode == VLAN_MODE_COMPAT)
+		seq_printf(s, "Working in eth-vlan compatibility mode.\n");
+	else
+		seq_printf(s, "Working in automatic interface mode.\n");
 
-        ns = name_tostring(data->app_name);
-        if (ns) {
-                seq_printf(s, "App Name: %s\n", ns);
-                rkfree(ns);
-        } else
-                seq_printf(s, "App Name: Unknown\n");
+	ns = name_tostring(data->app_name);
+	if (ns) {
+		seq_printf(s, "App Name: %s\n", ns);
+		rkfree(ns);
+	} else
+		seq_printf(s, "App Name: Unknown\n");
 
-        ns = name_tostring(data->daf_name);
-        if (ns) {
-                seq_printf(s, "DAF Name: %s\n", ns);
-                rkfree(ns);
-        } else
-                seq_printf(s, "DAF Name: Unknown\n");
+	ns = name_tostring(data->daf_name);
+	if (ns) {
+		seq_printf(s, "DAF Name: %s\n", ns);
+		rkfree(ns);
+	} else
+		seq_printf(s, "DAF Name: Unknown\n");
 
-        seq_printf(s, "VLAN ID: %d\n", data->info->vlan_id);
-        seq_printf(s, "Ethernet interface: %s\n", data->info->interface_name);
+	seq_printf(s, "VLAN ID: %d\n", data->info->vlan_id);
+	seq_printf(s, "Ethernet interface: %s\n", data->info->interface_name);
 
-        if (data->info->use_spoof_mac) {
-                seq_printf(s, "Spoof MAC %u:%u:%u:%u:%u:%u\n",
-                           data->info->spoof_mac[0], data->info->spoof_mac[1],
-                           data->info->spoof_mac[2], data->info->spoof_mac[3],
-                           data->info->spoof_mac[4], data->info->spoof_mac[5]);
-        }
+	if (data->info->use_spoof_mac) {
+		seq_printf(s, "Spoof MAC %u:%u:%u:%u:%u:%u\n",
+			   data->info->spoof_mac[0], data->info->spoof_mac[1],
+			   data->info->spoof_mac[2], data->info->spoof_mac[3],
+			   data->info->spoof_mac[4], data->info->spoof_mac[5]);
+	}
 
-        return 0;
+	return 0;
 }
 
 static int eth_shim_dbg_inst_flows_show(struct seq_file *s, void *v)
 {
-        struct shim_eth_flow *flow;
-        struct ipcp_instance_data *data;
-        const uint8_t *ha;
-        char *ns;
+	struct shim_eth_flow *flow;
+	struct ipcp_instance_data *data;
+	const uint8_t *ha;
+	char *ns;
 
-        data = (struct ipcp_instance_data *)s->private;
+	data = (struct ipcp_instance_data *)s->private;
 
-        spin_lock_bh(&data->lock);
+	spin_lock_bh(&data->lock);
 
-        list_for_each_entry(flow, &data->flows, list) {
-                seq_printf(s, "Port Id: %d\n", flow->port_id);
+	list_for_each_entry(flow, &data->flows, list) {
+        seq_printf(s, "Port Id: %d\n", flow->port_id);
 
-                if (gha_is_ok(flow->dest_ha)) {
-                        ha = gha_address(flow->dest_ha);
-                        seq_printf(s, "Dest Hardware Address: %u:%u:%u:%u:%u:%u\n",
-                                   ha[0], ha[1],  ha[2], ha[3], ha[4], ha[5]);
-                } else
-                        seq_printf(s, "Dest Hardware Address: Invalid\n");
+        if (gha_is_ok(flow->dest_ha)) {
+                ha = gha_address(flow->dest_ha);
+                seq_printf(s, "Dest Hardware Address: %u:%u:%u:%u:%u:%u\n",
+                           ha[0], ha[1],  ha[2], ha[3], ha[4], ha[5]);
+        } else
+                seq_printf(s, "Dest Hardware Address: Invalid\n");
 
-                ns = gpa_address_to_string_gfp(GFP_KERNEL, flow->dest_pa);
-                if (ns) {
-                        seq_printf(s, "Dest Protocol Address: %s\n", ns);
-                        rkfree(ns);
-                } else
-                        seq_printf(s, "Dest Protocol Address: Unknown\n");
+        ns = gpa_address_to_string_gfp(GFP_KERNEL, flow->dest_pa);
+        if (ns) {
+                seq_printf(s, "Dest Protocol Address: %s\n", ns);
+                rkfree(ns);
+        } else
+                seq_printf(s, "Dest Protocol Address: Unknown\n");
 
-                if (flow->port_id_state == PORT_STATE_PENDING)
-                        seq_printf(s, "Port state: PENDING\n");
-                else if (flow->port_id_state == PORT_STATE_ALLOCATED)
-                        seq_printf(s, "Port state: ALLOCATED\n");
-                else
-                        seq_printf(s, "Port state: UNKNOWN\n");
-        }
+        if (flow->port_id_state == PORT_STATE_PENDING)
+                seq_printf(s, "Port state: PENDING\n");
+        else if (flow->port_id_state == PORT_STATE_ALLOCATED)
+                seq_printf(s, "Port state: ALLOCATED\n");
+        else
+                seq_printf(s, "Port state: UNKNOWN\n");
+}
 
-        spin_unlock_bh(&data->lock);
+	spin_unlock_bh(&data->lock);
 
-        seq_printf(s, "\n");
+	seq_printf(s, "\n");
 
-        return 0;
+	return 0;
 }
 
 static int eth_shim_dbg_inst_info_open(struct inode *inode, struct file *file)
 {
-        return single_open(file, eth_shim_dbg_inst_info_show, inode->i_private);
+	return single_open(file, eth_shim_dbg_inst_info_show, inode->i_private);
 }
 
 static int eth_shim_dbg_inst_flows_open(struct inode *inode, struct file *file)
 {
-        return single_open(file, eth_shim_dbg_inst_flows_show, inode->i_private);
+	return single_open(file, eth_shim_dbg_inst_flows_show, inode->i_private);
 }
 
 static const struct file_operations eth_shim_dbg_inst_info_ops = {
-        .open		= eth_shim_dbg_inst_info_open,
-        .read		= seq_read,
-        .llseek		= seq_lseek,
-        .release	= single_release,
+	.open		= eth_shim_dbg_inst_info_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= single_release,
 };
 
 static const struct file_operations eth_shim_dbg_inst_flows_ops = {
-        .open		= eth_shim_dbg_inst_flows_open,
-        .read		= seq_read,
-        .llseek		= seq_lseek,
-        .release	= single_release,
+	.open		= eth_shim_dbg_inst_flows_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= single_release,
 };
 #endif
 #endif
@@ -344,10 +344,10 @@ static ssize_t eth_ipcp_attr_show(struct robject *        robj,
 
         if (strcmp(robject_attr_name(attr), "name") == 0)
                 return sprintf(buf, "%s\n",
-                        name_tostring(instance->data->name));
+                               name_tostring(instance->data->name));
         if (strcmp(robject_attr_name(attr), "dif") == 0)
                 return sprintf(buf, "%s\n",
-                        name_tostring(instance->data->dif_name));
+                               name_tostring(instance->data->dif_name));
         if (strcmp(robject_attr_name(attr), "address") == 0)
                 return sprintf(buf,
                                "%02X:%02X:%02X:%02X:%02X:%02X\n",
@@ -363,7 +363,7 @@ static ssize_t eth_ipcp_attr_show(struct robject *        robj,
                 return sprintf(buf, "%u\n", instance->data->info->vlan_id);
         if (strcmp(robject_attr_name(attr), "iface") == 0)
                 return sprintf(buf, "%s\n",
-                        instance->data->info->interface_name);
+                               instance->data->info->interface_name);
         if (strcmp(robject_attr_name(attr), "tx_busy") == 0)
                 return sprintf(buf, "%u\n", instance->data->tx_busy);
 
@@ -386,11 +386,11 @@ inst_data_mapping_get(struct net_device * dev)
         spin_lock(&data_instances_lock);
 
         list_for_each_entry(mapping, &data_instances_list, list) {
-                if (mapping->dev == dev) {
-                        spin_unlock(&data_instances_lock);
-                        return mapping;
-                }
+        if (mapping->dev == dev) {
+                spin_unlock(&data_instances_lock);
+                return mapping;
         }
+}
 
         spin_unlock(&data_instances_lock);
 
@@ -406,10 +406,10 @@ find_instance(struct ipcp_factory_data * data,
         ASSERT(data);
 
         list_for_each_entry(pos, &(data->instances), list) {
-                if (pos->id == id) {
-                        return pos;
-                }
+        if (pos->id == id) {
+                return pos;
         }
+}
 
         return NULL;
 
@@ -426,11 +426,11 @@ static struct shim_eth_flow * find_flow(struct ipcp_instance_data * data,
         spin_lock_bh(&data->lock);
 
         list_for_each_entry(flow, &data->flows, list) {
-                if (flow->port_id == id) {
-                        spin_unlock_bh(&data->lock);
-                        return flow;
-                }
+        if (flow->port_id == id) {
+                spin_unlock_bh(&data->lock);
+                return flow;
         }
+}
 
         spin_unlock_bh(&data->lock);
 
@@ -469,10 +469,10 @@ find_flow_by_gha(struct ipcp_instance_data * data,
         ASSERT(gha_is_ok(addr));
 
         list_for_each_entry(flow, &data->flows, list) {
-                if (gha_is_equal(addr, flow->dest_ha)) {
-                        return flow;
-                }
+        if (gha_is_equal(addr, flow->dest_ha)) {
+                return flow;
         }
+}
 
         return NULL;
 }
@@ -487,10 +487,10 @@ find_flow_by_gpa(struct ipcp_instance_data * data,
         ASSERT(gpa_is_ok(addr));
 
         list_for_each_entry(flow, &data->flows, list) {
-                if (gpa_is_equal(addr, flow->dest_pa)) {
-                        return flow;
-                }
+        if (gpa_is_equal(addr, flow->dest_pa)) {
+                return flow;
         }
+}
 
         return NULL;
 }
@@ -534,9 +534,9 @@ static string_t * create_vlan_interface_name(string_t * interface_name,
         snprintf(string_vlan_id, sizeof(string_vlan_id), "%d", vlan_id);
 
         length = strlen(interface_name) +
-                sizeof(char)            +
-                strlen(string_vlan_id)  +
-                1 /* Terminator */;
+                 sizeof(char)            +
+                 strlen(string_vlan_id)  +
+                 1 /* Terminator */;
 
         complete_interface = rkmalloc(length, GFP_KERNEL);
         if (!complete_interface)
@@ -709,11 +709,11 @@ static void rinarp_resolve_handler(void *             opaque,
                                 return;
                         }
                 }
-                /*
-                 * In case an ARP request went unanswered, it is
-                 * unless to notify the kipcm since it nobody to
-                 * inform. Just unbind and destroy the flow.
-                 */
+			/*
+			 * In case an ARP request went unanswered, it is
+			 * unless to notify the kipcm since it nobody to
+			 * inform. Just unbind and destroy the flow.
+			 */
                 else {
                         spin_unlock_bh(&data->lock);
                         LOG_DBG("Flow creation ARP request has timed out.");
@@ -760,9 +760,9 @@ eth_flow_allocate_request(struct ipcp_instance_data * data,
         }
 
         /* if (!data->app_name || !name_is_equal(source, data->app_name)) {
-                LOG_ERR("Wrong request, app is not registered");
-                return -1;
-        } */
+           LOG_ERR("Wrong request, app is not registered");
+           return -1;
+           } */
 
         LOG_DBG("Will try to create flow on port ID %d", id);
 
@@ -898,8 +898,8 @@ eth_flow_allocate_response(struct ipcp_instance_data * data,
                         ASSERT(flow->user_ipcp->ops->sdu_enqueue);
                         if (flow->user_ipcp->ops->
                             du_enqueue(flow->user_ipcp->data,
-                                        flow->port_id,
-                                        tmp)) {
+                                       flow->port_id,
+                                       tmp)) {
                                 LOG_ERR("Couldn't enqueue SDU to KFA ...");
                                 return -1;
                         }
@@ -1112,10 +1112,10 @@ static void enable_all_port_ids(struct ipcp_instance_data * data)
 
         spin_lock_bh(&data->lock);
         list_for_each_entry(flow, &data->flows, list) {
-                if (flow->user_ipcp && flow->user_ipcp->ops)
-                        flow->user_ipcp->ops->enable_write(flow->user_ipcp->data,
-                                                           flow->port_id);
-        }
+        if (flow->user_ipcp && flow->user_ipcp->ops)
+                flow->user_ipcp->ops->enable_write(flow->user_ipcp->data,
+                                                   flow->port_id);
+}
         spin_unlock_bh(&data->lock);
 }
 
@@ -1126,9 +1126,9 @@ static void enable_write_all(struct net_device * dev)
         ASSERT(dev);
 
         list_for_each_entry(pos, &(eth_data.instances), list) {
-                if (pos->phy_dev == dev)
-                        enable_all_port_ids(pos);
-        }
+        if (pos->phy_dev == dev)
+                enable_all_port_ids(pos);
+}
 }
 
 static void eth_skb_destructor(struct sk_buff *skb)
@@ -1295,7 +1295,7 @@ static int eth_rcv_worker(void * o)
         }
 
         user_ipcp = kipcm_find_ipcp_by_name(default_kipcm,
-                                                    data->app_name);
+                                            data->app_name);
         if (!user_ipcp)
                 user_ipcp = kfa_ipcp_instance(data->kfa);
 
@@ -1366,11 +1366,11 @@ static int eth_rcv_worker(void * o)
         } else {
                 sname = name_create_ni();
                 if (!name_init_from_ni(sname,
-                        "Unknown app", "", "", "")) {
-                         name_destroy(sname);
-                         kfa_port_id_release(data->kfa, flow->port_id);
-                         unbind_and_destroy_flow(data, flow);
-                         return -1;
+				       "Unknown app", "", "", "")) {
+                        name_destroy(sname);
+                        kfa_port_id_release(data->kfa, flow->port_id);
+                        unbind_and_destroy_flow(data, flow);
+                        return -1;
                 }
 
                 flow->dest_pa = name_to_gpa(sname);
@@ -1625,7 +1625,7 @@ static int eth_set_net_devs_compat(struct ipcp_instance_data* data,
                 ASSERT(dif_name->process_name);
 
                 LOG_WARN("DIF name not a VLAN number, using full Ethernet interface: %s",
-                        dif_name->process_name);
+                         dif_name->process_name);
                 vlan_id_provided = 0;
         }
 
@@ -1646,7 +1646,7 @@ static int eth_set_net_devs_compat(struct ipcp_instance_data* data,
 
         if (!complete_interface) return -1;
 
-        read_lock(&dev_base_lock);
+        rtnl_lock();
         data->dev = __dev_get_by_name(&init_net, complete_interface);
 
         if (!data->dev) {
@@ -1664,10 +1664,10 @@ static int eth_set_net_devs_compat(struct ipcp_instance_data* data,
                         failed = -1;
                 }
         }
-        // In case there was no VLAN ID provided.
+		// In case there was no VLAN ID provided.
         else data->phy_dev = data->dev;
 
-        read_unlock(&dev_base_lock);
+        rtnl_unlock();
 
         return failed;
 }
@@ -1677,13 +1677,13 @@ static int eth_set_net_devs_auto(struct ipcp_instance_data* data) {
 
         info = data->info;
 
-        read_lock(&dev_base_lock);
+        rtnl_lock();
         data->dev = __dev_get_by_name(&init_net, info->interface_name);
 
         if (!data->dev) {
-            LOG_ERR("Unknown device: %s", info->interface_name);
-            read_unlock(&dev_base_lock);
-            return -1;
+		LOG_ERR("Unknown device: %s", info->interface_name);
+		rtnl_unlock();
+		return -1;
         }
 
         if (is_vlan_dev(data->dev)) {
@@ -1693,7 +1693,7 @@ static int eth_set_net_devs_auto(struct ipcp_instance_data* data) {
                 if (!vlan_id_is_ok(info->vlan_id)) {
                         if (info->vlan_id != 0) {
                                 LOG_ERR("Bad VLAN ID specified: %d", info->vlan_id);
-                                read_unlock(&dev_base_lock);
+                                rtnl_unlock();
                                 return -1;
                         }
                 }
@@ -1706,7 +1706,7 @@ static int eth_set_net_devs_auto(struct ipcp_instance_data* data) {
 
                 LOG_DBG("Using physical interface %s", info->interface_name);
         }
-        read_unlock(&dev_base_lock);
+        rtnl_unlock();
 
         return 0;
 }
@@ -1759,7 +1759,7 @@ static void eth_handle_config_entry(struct eth_info *info,
 
         return;
 
-        oops:
+oops:
         if (s) rkfree(s);
 }
 
@@ -1802,9 +1802,9 @@ static int eth_assign_to_dif(struct ipcp_instance_data * data,
 
         /* Retrieve configuration of IPC process from params */
         list_for_each_entry(tmp, &(config->ipcp_config_entries), next) {
-                const struct ipcp_config_entry *entry = tmp->entry;
-                eth_handle_config_entry(info, entry);
-        }
+        const struct ipcp_config_entry *entry = tmp->entry;
+        eth_handle_config_entry(info, entry);
+}
 
         /* Fail here if we didn't get an interface */
         if (!info->interface_name) {
@@ -1815,8 +1815,8 @@ static int eth_assign_to_dif(struct ipcp_instance_data * data,
         }
 
         result = data->vlan_mode == VLAN_MODE_COMPAT ?
-                eth_set_net_devs_compat(data, data->dif_name) :
-                eth_set_net_devs_auto(data);
+                 eth_set_net_devs_compat(data, data->dif_name) :
+                 eth_set_net_devs_auto(data);
         if (result) {
                 name_destroy(data->dif_name);
                 rkfree(info->interface_name);
@@ -1889,9 +1889,9 @@ static int eth_update_dif_config(struct ipcp_instance_data * data,
 
         /* Retrieve configuration of IPC process from params */
         list_for_each_entry(tmp, &(new_config->ipcp_config_entries), next) {
-                const struct ipcp_config_entry * entry;
-                eth_handle_config_entry(info, entry);
-        }
+        const struct ipcp_config_entry * entry;
+        eth_handle_config_entry(info, entry);
+}
 
         dev_remove_pack(data->eth_packet_type);
 
@@ -1912,8 +1912,8 @@ static int eth_update_dif_config(struct ipcp_instance_data * data,
 
         /* Update the network device we use for this IPCP instance. */
         result = data->vlan_mode == VLAN_MODE_COMPAT ?
-                eth_set_net_devs_compat(data, data->dif_name) :
-                eth_set_net_devs_auto(data);
+                 eth_set_net_devs_compat(data, data->dif_name) :
+                 eth_set_net_devs_auto(data);
         if (result)
                 return -1;
 
@@ -2041,16 +2041,16 @@ static int ntfy_user_ipcp_on_if_state_change(struct ipcp_instance_data * data,
         ASSERT(data);
 
         list_for_each_entry(flow, &data->flows, list) {
-                if (!flow->user_ipcp) {
-                        /* This flow is used by an userspace application,
-                         * we are not able to notify that one for now. */
-                        continue;
-                }
+        if (!flow->user_ipcp) {
+                /* This flow is used by an userspace application,
+                 * we are not able to notify that one for now. */
+                continue;
+        }
 
-                flow->user_ipcp->ops->
+        flow->user_ipcp->ops->
                             nm1_flow_state_change(flow->user_ipcp->data,
                                                   flow->port_id, up);
-        }
+}
 
         return 0;
 }
@@ -2068,33 +2068,33 @@ static int eth_netdev_notify(struct notifier_block *nb,
         dev = netdev_notifier_info_to_dev(opaque);
 
         list_for_each_entry(pos, &eth_data.instances, list) {
-                if (pos->dev != dev) {
-                        /* We don't care about this network interface. */
-                        continue;
-                }
-
-                switch (event) {
-
-                case NETDEV_UP:
-                        LOG_INFO("Device %s goes up", dev->name);
-                        ntfy_user_ipcp_on_if_state_change(pos, true);
-                        spin_lock_bh(&pos->lock);
-                        pos->tx_busy = 0;
-                        spin_unlock_bh(&pos->lock);
-                        enable_write_all(pos->phy_dev);
-                        break;
-
-                case NETDEV_DOWN:
-                        LOG_INFO("Device %s goes down", dev->name);
-                        ntfy_user_ipcp_on_if_state_change(pos, false);
-                        break;
-
-                default:
-                        LOG_DBG("Ignoring event %lu on device %s",
-                                event, dev->name);
-                        break;
-                }
+        if (pos->dev != dev) {
+                /* We don't care about this network interface. */
+                continue;
         }
+
+        switch (event) {
+
+        case NETDEV_UP:
+                LOG_INFO("Device %s goes up", dev->name);
+                ntfy_user_ipcp_on_if_state_change(pos, true);
+                spin_lock_bh(&pos->lock);
+                pos->tx_busy = 0;
+                spin_unlock_bh(&pos->lock);
+                enable_write_all(pos->phy_dev);
+                break;
+
+        case NETDEV_DOWN:
+                LOG_INFO("Device %s goes down", dev->name);
+                ntfy_user_ipcp_on_if_state_change(pos, false);
+                break;
+
+        default:
+                LOG_DBG("Ignoring event %lu on device %s",
+                        event, dev->name);
+                break;
+        }
+}
 
         return 0;
 }
@@ -2181,7 +2181,7 @@ static struct ipcp_instance* eth_create(struct ipcp_factory_data*  data,
         struct ipcp_instance * inst;
 #ifdef CONFIG_DEBUG_FS
 #if 0
-        char buf[6]; // name of the DebugFS dir.
+	char buf[6]; // name of the DebugFS dir.
 #endif
 #endif
 
@@ -2283,31 +2283,31 @@ static struct ipcp_instance* eth_create(struct ipcp_factory_data*  data,
 
 #ifdef CONFIG_DEBUG_FS
 #if 0
-        if (data->dbg) {
-                struct dentry *d;
+	if (data->dbg) {
+		struct dentry *d;
 
-                snprintf(buf, sizeof(buf), "%d", id);
-                inst->data->dbg = debugfs_create_dir(buf, data->dbg);
+		snprintf(buf, sizeof(buf), "%d", id);
+		inst->data->dbg = debugfs_create_dir(buf, data->dbg);
 
-                if (inst->data->dbg) {
-                        d = debugfs_create_file("info",
-                                                S_IRUSR,
-                                                inst->data->dbg,
-                                                inst->data,
-                                                &eth_shim_dbg_inst_info_ops);
-                        inst->data->dbg_info = d;
-                        d = debugfs_create_file("flows",
-                                                S_IRUSR,
-                                                inst->data->dbg,
-                                                inst->data,
-                                                &eth_shim_dbg_inst_flows_ops);
-                        inst->data->dbg_flows = d;
-                        debugfs_create_u32("arp_timeout_ms",
-                                           S_IRUSR | S_IWUSR,
-                                           inst->data->dbg,
-                                           &inst->data->info->arp_timeout_ms);
-                }
-        }
+		if (inst->data->dbg) {
+			d = debugfs_create_file("info",
+						S_IRUSR,
+						inst->data->dbg,
+						inst->data,
+						&eth_shim_dbg_inst_info_ops);
+			inst->data->dbg_info = d;
+			d = debugfs_create_file("flows",
+						S_IRUSR,
+						inst->data->dbg,
+						inst->data,
+						&eth_shim_dbg_inst_flows_ops);
+			inst->data->dbg_flows = d;
+			debugfs_create_u32("arp_timeout_ms",
+					   S_IRUSR | S_IWUSR,
+					   inst->data->dbg,
+					   &inst->data->info->arp_timeout_ms);
+		}
+	}
 #endif
 #endif
 
@@ -2346,101 +2346,101 @@ static int eth_destroy(struct ipcp_factory_data * data,
 
         /* Retrieve the instance */
         list_for_each_entry_safe(pos, next, &data->instances, list) {
-                if (pos->id == instance->data->id) {
+        if (pos->id == instance->data->id) {
 
 #ifdef CONFIG_DEBUG_FS
 #if 0
-                        if (instance->data->dbg_info)
-                                debugfs_remove(instance->data->dbg_info);
-                        if (instance->data->dbg_flows)
-                                debugfs_remove(instance->data->dbg_flows);
-                        if (instance->data->dbg_timeout)
-                                debugfs_remove(instance->data->dbg_timeout);
-                        if (instance->data->dbg)
-                                debugfs_remove(instance->data->dbg);
+		if (instance->data->dbg_info)
+			debugfs_remove(instance->data->dbg_info);
+		if (instance->data->dbg_flows)
+			debugfs_remove(instance->data->dbg_flows);
+		if (instance->data->dbg_timeout)
+			debugfs_remove(instance->data->dbg_timeout);
+		if (instance->data->dbg)
+			debugfs_remove(instance->data->dbg);
 #endif
 #endif
 
-                        /* Destroy existing flows */
-                        list_for_each_entry_safe(flow, nflow, &pos->flows, list) {
-                                unbind_and_destroy_flow(pos, flow);
+		/* Destroy existing flows */
+		list_for_each_entry_safe(flow, nflow, &pos->flows, list) {
+                unbind_and_destroy_flow(pos, flow);
+        	}
+
+                /* Remove packet handler if there is one */
+                if (pos->eth_packet_type->dev)
+                        __dev_remove_pack(pos->eth_packet_type);
+
+                /* Unbind from the instances set */
+                list_del(&pos->list);
+
+                /* Destroy it */
+                if (pos->name)
+                        name_destroy(pos->name);
+
+                if (pos->dif_name)
+                        name_destroy(pos->dif_name);
+
+                if (pos->app_name)
+                        name_destroy(pos->app_name);
+
+                if (pos->daf_name)
+                        name_destroy(pos->daf_name);
+
+                if (pos->info->interface_name)
+                        rkfree(pos->info->interface_name);
+
+                if (pos->info)
+                        rkfree(pos->info);
+
+                if (pos->fspec)
+                        rkfree(pos->fspec);
+
+                if (pos->app_handle) {
+                        if (rinarp_remove(pos->app_handle)) {
+                                LOG_ERR("Failed to remove "
+                                        "the entry from the cache");
+                                return -1;
                         }
-
-                        /* Remove packet handler if there is one */
-                        if (pos->eth_packet_type->dev)
-                                __dev_remove_pack(pos->eth_packet_type);
-
-                        /* Unbind from the instances set */
-                        list_del(&pos->list);
-
-                        /* Destroy it */
-                        if (pos->name)
-                                name_destroy(pos->name);
-
-                        if (pos->dif_name)
-                                name_destroy(pos->dif_name);
-
-                        if (pos->app_name)
-                                name_destroy(pos->app_name);
-
-                        if (pos->daf_name)
-                                name_destroy(pos->daf_name);
-
-                        if (pos->info->interface_name)
-                                rkfree(pos->info->interface_name);
-
-                        if (pos->info)
-                                rkfree(pos->info);
-
-                        if (pos->fspec)
-                                rkfree(pos->fspec);
-
-                        if (pos->app_handle) {
-                                if (rinarp_remove(pos->app_handle)) {
-                                        LOG_ERR("Failed to remove "
-                                                "the entry from the cache");
-                                        return -1;
-                                }
-                        }
-
-                        if (pos->daf_handle) {
-                                if (rinarp_remove(pos->daf_handle)) {
-                                        LOG_ERR("Failed to remove "
-                                                "the entry from the cache");
-                                        return -1;
-                                }
-                        }
-
-                        if (pos->dev) {
-                                mapping = inst_data_mapping_get(pos->dev);
-                                if (mapping) {
-                                        LOG_DBG("removing mapping from list");
-                                        spin_lock(&data_instances_lock);
-                                        list_del(&mapping->list);
-                                        spin_unlock(&data_instances_lock);
-                                        rkfree(mapping);
-                                }
-                        }
-
-                        robject_del(&instance->robj);
-
-                        /*
-                         * Might cause problems:
-                         * The packet type might still be in use by receivers
-                         * and must not be freed until after all
-                         * the CPU's have gone through a quiescent state.
-                         */
-                        if (pos->eth_packet_type)
-                                rkfree(pos->eth_packet_type);
-
-                        rkfree(pos);
-                        rkfree(instance);
-
-                        LOG_DBG("Ethernet shim instance destroyed, returning");
-
-                        return 0;
                 }
+
+                if (pos->daf_handle) {
+                        if (rinarp_remove(pos->daf_handle)) {
+                                LOG_ERR("Failed to remove "
+                                        "the entry from the cache");
+                                return -1;
+                        }
+                }
+
+                if (pos->dev) {
+                        mapping = inst_data_mapping_get(pos->dev);
+                        if (mapping) {
+                                LOG_DBG("removing mapping from list");
+                                spin_lock(&data_instances_lock);
+                                list_del(&mapping->list);
+                                spin_unlock(&data_instances_lock);
+                                rkfree(mapping);
+                        }
+                }
+
+                robject_del(&instance->robj);
+
+                /*
+                 * Might cause problems:
+                 * The packet type might still be in use by receivers
+                 * and must not be freed until after all
+                 * the CPU's have gone through a quiescent state.
+                 */
+                if (pos->eth_packet_type)
+                        rkfree(pos->eth_packet_type);
+
+                rkfree(pos);
+                rkfree(instance);
+
+                LOG_DBG("Ethernet shim instance destroyed, returning");
+
+                return 0;
         }
+	}
 
         LOG_DBG("Didn't find instance, returning error");
 
@@ -2625,7 +2625,7 @@ static int __init mod_init(void)
 
         return 0;
 
-        fail:
+fail:
         if (!shim_eth)
                 kipcm_ipcp_factory_unregister(default_kipcm, shim_eth);
         if (!shim_eth_vlan)

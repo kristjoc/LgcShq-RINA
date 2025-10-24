@@ -48,7 +48,7 @@ static inline unsigned long ecn_to_ms(struct timespec * t) {
 #else
 static inline unsigned long ecn_to_ms(struct timespec64 *t) {
 #endif
-	return (t->tv_sec * 1000) + (t->tv_nsec / 1000000);
+return (t->tv_sec * 1000) + (t->tv_nsec / 1000000);
 }
 
 #define ECN_THRE			35
@@ -97,34 +97,34 @@ struct kobject ecn_obj;
 struct ecn_attribute {
 	struct attribute attr;
 	ssize_t (* show)(
-		struct kobject * kobj,
-		struct attribute * attr,
-		char * buf);
+			 struct kobject * kobj,
+			 struct attribute * attr,
+			 char * buf);
 	ssize_t (* store)(
-		struct kobject * foo,
-		struct attribute * attr,
-		const char * buf,
-		size_t count);
+			  struct kobject * foo,
+			  struct attribute * attr,
+			  const char * buf,
+			  size_t count);
 };
 
 /* Show procedure! */
 static ssize_t ecn_attr_show(
-	struct kobject * kobj,
-	struct attribute * attr,
-	char * buf) {
+			     struct kobject * kobj,
+			     struct attribute * attr,
+			     char * buf) {
 
 	struct rmt_queue * rmtq = 0;
 
 	if(strcmp(attr->name, "queue_size") == 0) {
 		rmtq = container_of(kobj, struct rmt_queue, qobj);
 		return snprintf(
-			buf, PAGE_SIZE, "%zd\n", rfifo_length(rmtq->queue));
+				buf, PAGE_SIZE, "%zd\n", rfifo_length(rmtq->queue));
 	}
 
 	if(strcmp(attr->name, "mgmt_size") == 0) {
 		rmtq = container_of(kobj, struct rmt_queue, qobj);
 		return snprintf(
-			buf, PAGE_SIZE, "%zd\n", rfifo_length(rmtq->mgmt));
+				buf, PAGE_SIZE, "%zd\n", rfifo_length(rmtq->mgmt));
 	}
 
 	if(strcmp(attr->name, "threshold") == 0) {
@@ -142,10 +142,10 @@ static ssize_t ecn_attr_show(
 
 /* Store procedure! */
 static ssize_t ecn_attr_store(
-	struct kobject * kobj,
-	struct attribute * attr,
-	const char * buf,
-	size_t count) {
+			      struct kobject * kobj,
+			      struct attribute * attr,
+			      const char * buf,
+			      size_t count) {
 
 	int ft = 0;
 	int op = 0;
@@ -204,18 +204,38 @@ static void ecn_release(struct kobject *kobj) {
 	/* Nothing... */
 }
 
+// Define an attribute group for your attributes
+static struct attribute_group ecn_attr_group = {
+	.attrs = ecn_attrs,
+};
+
+// Create an array of attribute groups (NULL terminated)
+static const struct attribute_group *ecn_attr_groups[] = {
+	&ecn_attr_group,
+	NULL,
+};
+
 /* Master ECN ktype, different for the type of shown attributes. */
 static struct kobj_type ecn_ktype = {
 	.sysfs_ops = &ecn_sysfs_ops,
 	.release = ecn_release,
-	.default_attrs = ecn_attrs,
+	.default_groups = ecn_attr_groups,
+};
+
+static struct attribute_group ecn_queue_attr_group = {
+	.attrs = ecn_queue_attrs,
+};
+
+static const struct attribute_group *ecn_queue_attr_groups[] = {
+	&ecn_queue_attr_group,
+	NULL,
 };
 
 /* Queues ECN ktype, different for the type of shown attributes. */
 static struct kobj_type ecn_queue_ktype = {
 	.sysfs_ops = &ecn_sysfs_ops,
 	.release = ecn_release,
-	.default_attrs = ecn_queue_attrs,
+	.default_groups = ecn_queue_attr_groups,
 };
 
 /*
@@ -251,7 +271,7 @@ static struct rmt_queue * ecn_queue_create(port_id_t port) {
 
 	/* Don't care of error code... */
 	if(kobject_init_and_add(
-		&tmp->qobj, &ecn_queue_ktype, &ecn_obj, "%d", port)) {
+				&tmp->qobj, &ecn_queue_ktype, &ecn_obj, "%d", port)) {
 
 		LOG_ERR("Cannot create ecn sysfs object for %d", port);
 	}
@@ -284,8 +304,8 @@ static int ecn_queue_destroy(struct rmt_queue *q) {
 }
 
 static void * ecn_create_q(
-	struct rmt_ps      * ps,
-	struct rmt_n1_port * n1_port) {
+			   struct rmt_ps      * ps,
+			   struct rmt_n1_port * n1_port) {
 
 	struct rmt_queue *queue;
 	struct rmt_ps_data *data;
@@ -310,8 +330,8 @@ static void * ecn_create_q(
 }
 
 static int ecn_destroy_q(
-	struct rmt_ps      *ps,
-	struct rmt_n1_port *n1_port) {
+			 struct rmt_ps      *ps,
+			 struct rmt_n1_port *n1_port) {
 
 	struct rmt_queue *queue;
 	struct rmt_ps_data *data;
@@ -382,7 +402,7 @@ int ecn_enqueue(struct rmt_ps * ps,
 	 */
 	if(c > data->thre) {
 		pci_flags_set(&du->pci, pci_flags_get(&du->pci) |
-				PDU_FLAGS_EXPLICIT_CONGESTION);
+					PDU_FLAGS_EXPLICIT_CONGESTION);
 	}
 
 	if (!must_enqueue && rfifo_is_empty(q->queue))
@@ -393,8 +413,8 @@ int ecn_enqueue(struct rmt_ps * ps,
 }
 
 struct du * ecn_dequeue(
-	struct rmt_ps *ps,
-	struct rmt_n1_port *n1_port) {
+			struct rmt_ps *ps,
+			struct rmt_n1_port *n1_port) {
 
 	struct rmt_queue * q;
 	struct du * ret_pdu;
@@ -429,9 +449,9 @@ struct du * ecn_dequeue(
 }
 
 static int ecn_set_policy_set_param(
-	struct ps_base *bps,
-	const char *name,
-	const char *value) {
+				    struct ps_base *bps,
+				    const char *name,
+				    const char *value) {
 
 	struct rmt_ps *ps = container_of(bps, struct rmt_ps, base);
 	struct rmt_ps_data *data = ps->priv;
@@ -505,8 +525,8 @@ static struct ps_base * ecn_create(struct rina_component * component) {
 		data->q_max = DEFAULT_Q_MAX;
 	} else {
 		ecn_set_policy_set_param(&ps->base,
-			policy_param_name(parm),
-			policy_param_value(parm));
+					 policy_param_name(parm),
+					 policy_param_value(parm));
 	}
 
 	/* Start as fast as possible to signal the congestion. */
@@ -581,7 +601,7 @@ static void __exit ecn_module_exit(void) {
 
 	if (ret) {
 		LOG_ERR("Failed to unpublish %s policy, error %d.", ECN_PS_NAME,
-		                ret);
+		        ret);
 
 		return;
 	}

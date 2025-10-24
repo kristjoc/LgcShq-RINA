@@ -29,7 +29,7 @@ clean:
 
 install:
 	$(MAKE) -C $(KDIR) M=$$PWD modules_install
-	cp cdrr.manifest /lib/modules/$(KREL)/extra/
+	cp cdrr.manifest /lib/modules/$(KREL)/updates/
 	depmod -a
 
 uninstall:

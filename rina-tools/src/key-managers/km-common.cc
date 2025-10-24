@@ -30,6 +30,7 @@
 #include <sstream>
 #include <time.h>
 
+#define OPENSSL_SUPPRESS_DEPRECATED
 #include <openssl/conf.h>
 #include <openssl/bio.h>
 #include <openssl/evp.h>

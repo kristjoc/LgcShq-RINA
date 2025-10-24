@@ -27,7 +27,7 @@ clean:
 
 install:
 	$(MAKE) -C $(KDIR) M=$$PWD modules_install
-	cp pffb.manifest /lib/modules/$(KREL)/extra/
+	cp pffb.manifest /lib/modules/$(KREL)/updates/
 	depmod -a
 
 uninstall:
