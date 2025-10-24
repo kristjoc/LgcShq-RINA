@@ -1,0 +1,3 @@
+[submodule "pepdna"]
+	path = pepdna
+	url = https://github.com/kristjoc/pepdna.git
