@@ -166,8 +166,8 @@ int cidm_release(struct cidm * instance,
                }
 	}
 	spin_unlock(&instance->lock);
-	
+
 	LOG_ERR("Didn't find cep-id %d, returning error", id);
-	
+
 	return -1;
 }

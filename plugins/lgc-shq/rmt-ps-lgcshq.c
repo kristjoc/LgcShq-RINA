@@ -33,12 +33,12 @@
 #include "policies.h"
 
 /* parameters */
-#define DEFAULT_LIMIT 1000U		// 1000p
+#define DEFAULT_LIMIT 1000U					// 1000p
 #define DEFAULT_INTERVAL PSCHED_NS2TICKS(10 * NSEC_PER_MSEC)	// 10ms
-#define DEFAULT_MAXP (8U<<16)/10U	// 0.80
-#define DEFAULT_ALPHA (95U<<16)/100U	// 0.95
-#define DEFAULT_BANDWIDTH 12500U 	// 100Mbps in bytes/ms
-#define DEFAULT_ECN_BITS 1		// 1-bit
+#define DEFAULT_MAXP (8U<<16)/10U				// 0.80
+#define DEFAULT_ALPHA (95U<<16)/100U				// 0.95
+#define DEFAULT_BANDWIDTH 12500U 				// 100Mbps (bpms)
+#define DEFAULT_ECN_BITS 1					// 1-bit
 
 struct lgcshq_rmt_ps_data {
         /* Max length of a queue. */
@@ -63,8 +63,8 @@ struct lgcshq_rmt_ps_data {
 };
 
 struct lgcshq_rmt_queue {
-        struct rfifo*  queue;
-        port_id_t      port_id;
+        struct rfifo* queue;
+        port_id_t     port_id;
 };
 
 static void calc_probability(struct lgcshq_rmt_ps_data *data,

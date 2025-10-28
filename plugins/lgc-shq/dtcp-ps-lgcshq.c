@@ -34,12 +34,12 @@
 
 
 #define LGCSHQ_ALPHA (5U<<16)/100U	// 0.05
-#define ONE (1U<<16)				// 1.0
+#define ONE (1U<<16)			// 1.0
 #define ALMOST_ONE (999U<<16)/1000U	// 0.99
 #define ONE_MINUS_ALPHA (95U<<16)/100U	// 0.95
-#define DEFAULT_ECN_BITS 1			// 1 bit
+#define DEFAULT_ECN_BITS 1		// 1 bit
 #define DEFAULT_LGC_MAX_RATE 100	// 100Mbps
-#define DEFAULT_THRESH (8U<<16)/10U // 0.8
+#define DEFAULT_THRESH (8U<<16)/10U	// 0.8
 #define DEFAULT_MIN_RTT 10000		// 10ms = 10000us
 #define DEFAULT_PACKET_SIZE 1484	// MSS + headers
 

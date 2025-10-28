@@ -1465,7 +1465,7 @@ static void __exit mod_exit(void)
         destroy_workqueue(mgmt_sdu_wq);
 
         kipcm_ipcp_factory_unregister(default_kipcm, normal);
-	
+
 	LOG_INFO("IRATI normal IPCP module removed");
 }
 

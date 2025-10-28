@@ -35,49 +35,49 @@ extern struct ps_factory dtcp_factory;
 
 static int __init mod_init(void)
 {
-    int ret;
+	int ret;
 
-    strcpy(rmt_factory.name,  RINA_LGCSHQ_PS_NAME);
-    strcpy(dtcp_factory.name, RINA_LGCSHQ_PS_NAME);
+	strcpy(rmt_factory.name,  RINA_LGCSHQ_PS_NAME);
+	strcpy(dtcp_factory.name, RINA_LGCSHQ_PS_NAME);
 
-    ret = rmt_ps_publish(&rmt_factory);
-    if (ret) {
-            LOG_ERR("Failed to publish RMT policy set factory");
-            return -1;
-    }
+	ret = rmt_ps_publish(&rmt_factory);
+	if (ret) {
+		LOG_ERR("Failed to publish RMT policy set factory");
+		return -1;
+	}
 
-    LOG_INFO("RMT LGCSHQ policy set loaded successfully");
+	LOG_INFO("RMT LGCSHQ policy set loaded successfully");
 
-    ret = dtcp_ps_publish(&dtcp_factory);
-    if (ret) {
-            LOG_ERR("Failed to publish DTCP policy set factory");
-            return -1;
-    }
+	ret = dtcp_ps_publish(&dtcp_factory);
+	if (ret) {
+		LOG_ERR("Failed to publish DTCP policy set factory");
+		return -1;
+	}
 
-    LOG_INFO("DTCP LGCSHQ policy set loaded successfully");
+	LOG_INFO("DTCP LGCSHQ policy set loaded successfully");
 
-    return 0;
+	return 0;
 }
 
 static void __exit mod_exit(void)
 {
-    int ret;
+	int ret;
 
-    ret = rmt_ps_unpublish(RINA_LGCSHQ_PS_NAME);
-    if (ret) {
-            LOG_ERR("Failed to unpublish LGCSHQ RMT policy set factory");
-            return;
-    }
+	ret = rmt_ps_unpublish(RINA_LGCSHQ_PS_NAME);
+	if (ret) {
+		LOG_ERR("Failed to unpublish LGCSHQ RMT policy set factory");
+		return;
+	}
 
-    LOG_INFO("LGCSHQ RMT policy set unloaded successfully");
+	LOG_INFO("LGCSHQ RMT policy set unloaded successfully");
 
-    ret = dtcp_ps_unpublish(RINA_LGCSHQ_PS_NAME);
-    if (ret) {
-            LOG_ERR("Failed to unpublish LGC-ShQ DTCP policy set factory");
-            return;
-    }
+	ret = dtcp_ps_unpublish(RINA_LGCSHQ_PS_NAME);
+	if (ret) {
+		LOG_ERR("Failed to unpublish LGC-ShQ DTCP policy set factory");
+		return;
+	}
 
-    LOG_INFO("LGC-ShQ DTCP policy set unloaded successfully");
+	LOG_INFO("LGC-ShQ DTCP policy set unloaded successfully");
 }
 
 module_init(mod_init);
