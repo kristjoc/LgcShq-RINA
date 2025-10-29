@@ -279,13 +279,13 @@ void rina_component_fini(struct rina_component * comp)
         struct ps_base *ps;
 
         mutex_lock(&comp->ps_lock);
-        rcu_read_lock();
+        /* rcu_read_lock(); */
         ps = rcu_dereference(comp->ps);
         if (ps) {
                 comp->ps_factory->destroy(ps);
                 module_put(comp->ps_factory->owner);
         }
-        rcu_read_unlock();
+        /* rcu_read_unlock(); */
         mutex_unlock(&comp->ps_lock);
 }
 
