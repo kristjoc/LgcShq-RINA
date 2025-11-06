@@ -281,6 +281,14 @@ static void resolution_destroy(struct resolution *res) {
         rkfree(res);
 }
 
+static void resolution_destroy_locked(struct resolution *res) {
+        /* Caller must hold resolutions_lock */
+        list_del(&res->next);
+        resolve_data_destroy(res->data);
+        rtimer_stop(&res->timer);
+        rkfree(res);
+}
+
 static int timeout_resolver(void *o) {
         struct resolution *res;
 
@@ -339,14 +347,12 @@ static int reply_resolver(void *o)
         /* Find the resolution that matches this reply. */
         list_for_each_entry_safe(pos, nxt, &resolutions_ongoing, next) {
                 if (is_resolve_data_matching(pos->data, tmp)) {
-                        spin_unlock(&resolutions_lock);
-
                         pos->notify(pos->opaque,
                                     tmp->timed_out,
                                     tmp->spa,
                                     tmp->sha);
 
-                        resolution_destroy(pos);
+                        resolution_destroy_locked(pos);
                         break;
                 }
         }
