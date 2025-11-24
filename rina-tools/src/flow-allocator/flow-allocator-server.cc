@@ -229,74 +229,83 @@ void FlowAllocatorServer::ev_thread_fn(void *)
 
 void FlowAllocatorServer::run(bool blocking)
 {
-    rina::IPCEvent *event = nullptr;
-    rina::FlowInformation flow;
-    struct nl_msg *data  = nullptr;
-    struct nlmsghdr *nlh = nullptr;
-    struct msghdr msg;
-    struct iovec iov;
-    int rc = 0;
+	rina::IPCEvent *event = nullptr;
+	rina::FlowInformation flow;
+	struct nl_msg *data  = nullptr;
+	struct nlmsghdr *nlh = nullptr;
+	struct msghdr msg;
+	struct iovec iov;
+	int rc = 0;
 
-    if (app_reg) {
-        applicationRegister();
-    }
+	if (app_reg) {
+		applicationRegister();
+	}
 
-    nl_sock = netlink_init();
-    if (nl_sock < 0) {
-        LOG_ERR("netlink_init");
-        return;
-    }
+	nl_sock = netlink_init();
+	if (nl_sock < 0) {
+		LOG_ERR("netlink_init");
+		return;
+	}
 
-    /* 2. Launch events thread */
-    ev_thread = std::thread(&FlowAllocatorServer::ev_thread_fn, this, nullptr);
+	/* 2. Launch events thread */
+	ev_thread = std::thread(&FlowAllocatorServer::ev_thread_fn, this, nullptr);
 
-    /* 3. Prepare to recv data from Netlink socket */
-    nlh = (struct nlmsghdr *)calloc(1, NLMSG_SPACE(NETLINK_MSS));
-    if (!nlh) {
-        LOG_ERR("calloc nlh");
-        goto out;
-    }
+	/* 3. Prepare to recv data from Netlink socket */
+	nlh = (struct nlmsghdr *)calloc(1, NLMSG_SPACE(NETLINK_MSS));
+	if (!nlh) {
+		LOG_ERR("calloc nlh");
+		goto out;
+	}
 
-    while (running) {
-        memset(nlh, 0, NLMSG_SPACE(NETLINK_MSS));
-        memset(&iov, 0, sizeof(struct iovec));
-        iov.iov_base = (void *)nlh;
-        iov.iov_len = NLMSG_SPACE(NETLINK_MSS);
+	while (running) {
+		memset(nlh, 0, NLMSG_SPACE(NETLINK_MSS));
+		memset(&iov, 0, sizeof(struct iovec));
+		iov.iov_base = (void *)nlh;
+		iov.iov_len = NLMSG_SPACE(NETLINK_MSS);
 
-        memset(&msg, 0, sizeof(struct msghdr));
-        msg.msg_iov    = &iov;
-        msg.msg_iovlen = 1;
+		memset(&msg, 0, sizeof(struct msghdr));
+		msg.msg_iov    = &iov;
+		msg.msg_iovlen = 1;
 
-        rc = recvmsg(nl_sock, &msg, 0);
-        if (rc > 0) {
-            data = (struct nl_msg *)NLMSG_DATA(nlh);
-            if (data->alloc == PEPDNA_NL_MSG_DEALLOC) {
-                destroyFlow(data->port_id);
-            } else if (data->alloc == PEPDNA_NL_MSG_ALLOC) {
-                event = (IPCEvent *)findEvents(data->port_id);
-                if (event) {
-                    LOG_INFO("Sending FLOW_ALLOCATE_RESPONSE");
-                    flow = ipcManager->allocateFlowResponse(
-                        *dynamic_cast<rina::FlowRequestEvent*>(event), 0, true, blocking);
-                    data->alloc = 0;
-                    rc = netlink_send_data(nl_sock, data);
-                    if (rc < 0) {
-                        LOG_ERR("Couldn't confirm to PEPDNA that flow is allocated");
-                        goto out;
-                    }
-                    eraseEvents(data->port_id);
-                }
-            }
-        } else if (rc < 0) {
-            if (errno == EAGAIN)
-                continue;
-            LOG_ERR("ERROR %d | recvmsg", errno);
-            goto out;
-        } else { /* rc = 0 */
-            LOG_ERR("ERROR | EOF on netlink socket");
-            goto out;
-        }
-    }
+		rc = recvmsg(nl_sock, &msg, 0);
+		if (rc > 0) {
+			data = (struct nl_msg *)NLMSG_DATA(nlh);
+			try {
+				if (data->alloc == PEPDNA_NL_MSG_DEALLOC) {
+					LOG_DBG("Received DEALLOC for flow %d", data->port_id);
+					destroyFlow(data->port_id);
+				} else if (data->alloc == PEPDNA_NL_MSG_ALLOC) {
+					event = (IPCEvent *)findEvents(data->port_id);
+					if (event) {
+						LOG_INFO("Sending FLOW_ALLOCATE_RESPONSE");
+						flow = ipcManager->allocateFlowResponse(
+																*dynamic_cast<rina::FlowRequestEvent*>(event), 0, true, blocking);
+						data->alloc = 0;
+						rc = netlink_send_data(nl_sock, data);
+						if (rc < 0) {
+							LOG_ERR("Failed to confirm to PEPDNA the flow allocation");
+							goto out;
+						}
+						eraseEvents(data->port_id);
+					}
+				}
+			} catch (const std::exception& e) {
+				LOG_ERR("Exception caught in FlowAllocatorServer::run: %s", e.what());
+				continue;
+			} catch (...) {
+				LOG_ERR("Unknown exception caught in FlowAllocatorServer::run");
+				continue;
+			}
+		} else if (rc < 0) {
+			if (errno == EAGAIN)
+				continue;
+			LOG_ERR("ERROR %d while receiving from Netlink socket", errno);
+			goto out;
+		} else { /* rc = 0 */
+			LOG_ERR("ERROR | EOF on netlink socket");
+			goto out;
+		}
+	}
 out:
     free(nlh); nlh = nullptr;
     if (nl_sock) {
@@ -309,13 +318,14 @@ void FlowAllocatorServer::destroyFlow(int _port_id)
     LOG_DBG("Deallocating flow with port-id %d", _port_id);
     ipcManager->deallocate_flow(_port_id);
     eraseFds(_port_id);
+    LOG_DBG("Deallocated flow with port-id %d", _port_id);
 }
 
 FlowAllocatorServer::~FlowAllocatorServer()
 {
-    ev_thread.join();
+	ev_thread.join();
 
-    if (nl_sock)
-        close(nl_sock);
-    nl_sock = 0;
+	if (nl_sock)
+		close(nl_sock);
+	nl_sock = 0;
 }
