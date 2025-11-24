@@ -307,15 +307,42 @@ int FlowAllocatorClient::createFlow(uint32_t saddr,
     return flow.portId;
 }
 
+
 void FlowAllocatorClient::destroyFlow(uint32_t _conn_id)
 {
     int port_id = findFd(_conn_id);
 
-    if (port_id > 0) {
+    // Safety Check: Don't process if we don't know this connection
+    if (port_id <= 0) {
+        LOG_WARN("Ignored request to destroy unknown connection ID %u", _conn_id);
+        return;
+    }
+
+    LOG_DBG("Destroying flow for conn if %u (Port ID: %d)", _conn_id, port_id);
+
+    /*
+     * 1: Clean up Local State FIRST.
+     * Even if the IPC call fails (e.g., flow already dead),
+     * we must ensure we don't leak our local file descriptor mapping.
+     */
+    eraseFd(_conn_id);
+
+    /*
+     * 2: Exception Safety.
+     * If the flow was already torn down by the network or server,
+     * deallocate_flow might throw. We catch it to avoid crashing the client.
+     */
+    try {
         ipcManager->deallocate_flow(port_id);
-        eraseFd(_conn_id);
+        LOG_DBG("IPC Deallocation successful for flow %d", port_id);
+    } catch (const std::exception &e) {
+        LOG_WARN("IPC deallocation failed for flow %d (likely already gone): %s",
+                 port_id, e.what());
+    } catch (...) {
+        LOG_WARN("IPC deallocation failed for flow %d (unknown error)", port_id);
     }
 }
+
 
 FlowAllocatorClient::~FlowAllocatorClient()
 {
