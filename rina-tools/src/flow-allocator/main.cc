@@ -124,7 +124,7 @@ int wrapped_main(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    rina::initialize("INFO", "");
+    rina::initialize("DEBUG", "");
 
     if (listen) {
         /* Server mode */

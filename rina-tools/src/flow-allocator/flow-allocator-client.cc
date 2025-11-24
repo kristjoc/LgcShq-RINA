@@ -144,12 +144,12 @@ void FlowAllocatorClient::thread_fn(struct nl_msg nlmsg)
 {
     int port_id = 0;
 
-    if (nlmsg.alloc) {
+    if (nlmsg.alloc == PEPDNA_NL_MSG_ALLOC) {
 
         LOG_DBG("thread %lu is allocating Fd{%u, ?}", pthread_self(), nlmsg.id);
         if ((port_id = createFlow(nlmsg.saddr, nlmsg.source, nlmsg.daddr,
-								  nlmsg.dest, nlmsg.id)) < 0) {
-            LOG_ERR("thread %lu couldn't allocate Flow", pthread_self());
+				  nlmsg.dest, nlmsg.id)) < 0) {
+            LOG_ERR("thread %lu failed to allocate Flow", pthread_self());
             return;
         }
         insertFd(nlmsg.id, port_id);
@@ -159,7 +159,7 @@ void FlowAllocatorClient::thread_fn(struct nl_msg nlmsg)
             LOG_ERR("ERROR | sendmsg");
             return;
         }
-    } else {
+    } else if (nlmsg.alloc == PEPDNA_NL_MSG_DEALLOC) {
         LOG_DBG("thread %lu deallocating Fd{%u, ?}", pthread_self(),
                                                      nlmsg.id);
         destroyFlow(nlmsg.id);

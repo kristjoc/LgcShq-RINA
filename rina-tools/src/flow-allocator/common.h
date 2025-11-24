@@ -34,24 +34,29 @@
 #include <condition_variable>    /* std::condition_variable */
 
 #define NL_PEPDNA_PROTO 31
-#define NETLINK_MSS 21
 #define MAX_CONNS 65535
 #define NL_RCVBUF_DEF 8388608
 #define NL_SNDBUF_DEF 8388608
+/* Define commands for the 'alloc' field */
+#define PEPDNA_NL_MSG_DEALLOC  0
+#define PEPDNA_NL_MSG_ALLOC    1
+#define PEPDNA_NL_MSG_INIT     7
 
 extern volatile sig_atomic_t running;
 extern std::condition_variable cv;
 extern pid_t nl_pid;
 
 struct nl_msg {
-    uint32_t saddr;
-    uint16_t source;
-    uint32_t daddr;
-    uint16_t dest;
-    uint32_t id;
-    int port_id;
-    bool alloc;
+	uint32_t saddr;
+	uint16_t source;
+	uint32_t daddr;
+	uint16_t dest;
+	uint32_t id;
+	int port_id;
+	uint8_t  alloc;
 } __attribute__((packed));
+
+#define NETLINK_MSS (sizeof(struct nl_msg))
 
 class Signal {
         public:

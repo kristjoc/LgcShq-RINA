@@ -268,9 +268,9 @@ void FlowAllocatorServer::run(bool blocking)
         rc = recvmsg(nl_sock, &msg, 0);
         if (rc > 0) {
             data = (struct nl_msg *)NLMSG_DATA(nlh);
-            if (!data->alloc) { /* Right TCP connections will close */
+            if (data->alloc == PEPDNA_NL_MSG_DEALLOC) {
                 destroyFlow(data->port_id);
-            } else if (data->alloc) { /* Right TCP connection is established */
+            } else if (data->alloc == PEPDNA_NL_MSG_ALLOC) {
                 event = (IPCEvent *)findEvents(data->port_id);
                 if (event) {
                     LOG_INFO("Sending FLOW_ALLOCATE_RESPONSE");

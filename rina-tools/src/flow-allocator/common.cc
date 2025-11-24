@@ -86,6 +86,8 @@ int netlink_init(void)
 
     /* Upon creating nl_sock, send an empty msg to kernel so that it can
      * register flow-allocator nl-pid */
+
+    nlmsg.alloc = PEPDNA_NL_MSG_INIT;
     rc = netlink_send_data(sock, &nlmsg);
     if (rc < 0) {
         LOG_ERR("sendmsg inside init");
