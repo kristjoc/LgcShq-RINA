@@ -185,16 +185,18 @@ void FlowAllocatorServer::ev_thread_fn(void *)
                 nlmsg.port_id = flowRequestEvent->portId;
                 nlmsg.alloc   = 1;
 
-                rc = netlink_send_data(nl_sock, &nlmsg);
-                if (rc < 0) {
-                    LOG_ERR("Couldn't ask PEPDNA to initiate TCP connect()");
-                    return;
-                }
-                /* Insert the flowRequestEvent to Events_Map and delete it only
+		/* Insert the flowRequestEvent to Events_Map and delete it only
                  * when flowResponse is sent (after the right TCP connection is
                  * established
                  */
                 insertEvents(flowRequestEvent->portId, event);
+
+                rc = netlink_send_data(nl_sock, &nlmsg);
+                if (rc < 0) {
+		    LOG_ERR("Failed to notify PEPDNA to allocate flow");
+		    eraseEvents(flowRequestEvent->portId);
+		    return;
+                }
 
                 break;
             }
