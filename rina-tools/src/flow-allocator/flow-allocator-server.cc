@@ -313,13 +313,31 @@ out:
     }
 }
 
+
 void FlowAllocatorServer::destroyFlow(int _port_id)
 {
-    LOG_DBG("Deallocating flow with port-id %d", _port_id);
-    ipcManager->deallocate_flow(_port_id);
-    eraseFds(_port_id);
-    LOG_DBG("Deallocated flow with port-id %d", _port_id);
+	if (_port_id == 0) {
+		// Just ignore 0, it's garbage.
+		return;
+	}
+
+	LOG_DBG("Deallocating flow with port-id %d", _port_id);
+
+	// 1. Always clean up local state (FDs)
+	eraseFds(_port_id);
+
+	// 2. Attempt IPC cleanup (which throws if flow is already gone)
+	try {
+		ipcManager->deallocate_flow(_port_id);
+	} catch (const std::exception &e) {
+		// Log as warning, but don't let it stop us
+		LOG_ERR("Failed to deallocate flow (flow likely already gone): %s",
+				e.what());
+	}
+
+	LOG_DBG("Deallocated flow with port-id %d", _port_id);
 }
+
 
 FlowAllocatorServer::~FlowAllocatorServer()
 {
